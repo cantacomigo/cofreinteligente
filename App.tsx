@@ -15,6 +15,8 @@ import GoalCard from './src/components/GoalCard.tsx';
 import PixModal from './src/components/PixModal.tsx';
 import AIAdvisor from './src/components/AIAdvisor.tsx';
 import InvestmentRecommendations from './src/components/InvestmentRecommendations.tsx';
+import AddGoalModal from './src/components/AddGoalModal.tsx';
+import AddTransactionModal from './src/components/AddTransactionModal.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
@@ -30,9 +32,10 @@ const App: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const [isPixOpen, setIsPixOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
-  // Mover cálculos para cima (antes dos returns condicionais)
   const totals = useMemo(() => {
     const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
     const expense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
@@ -54,7 +57,7 @@ const App: React.FC = () => {
   }, [sortedByDeadline]);
 
   const fetchData = async (userId: string) => {
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, avatar_url')
       .eq('id', userId)
@@ -115,25 +118,16 @@ const App: React.FC = () => {
   useEffect(() => {
     if (user) {
       fetchData(user.id);
-    } else {
-      setGoals([]);
-      setTransactions([]);
-      setProfile(null);
     }
   }, [user]);
 
-  // Agora os returns condicionais vêm após todos os hooks
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
+    </div>
+  );
 
-  if (!session) {
-    return <Login />;
-  }
+  if (!session) return <Login />;
 
   const handleDeposit = (goal: Goal) => {
     setSelectedGoal(goal);
@@ -142,54 +136,56 @@ const App: React.FC = () => {
 
   const confirmDeposit = async (amount: number) => {
     if (!selectedGoal || !user) return;
-    
-    const { data: txData, error: txError } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: user.id,
-        goal_id: selectedGoal.id,
-        amount: amount,
-        type: 'deposit',
-        category: selectedGoal.category,
-        method: 'pix'
-      })
-      .select()
-      .single();
+    const { data: txData } = await supabase.from('transactions').insert({
+      user_id: user.id, goal_id: selectedGoal.id, amount, type: 'deposit', category: selectedGoal.category, method: 'pix'
+    }).select().single();
 
-    if (txError) return;
+    if (txData) {
+      const newAmount = selectedGoal.currentAmount + amount;
+      await supabase.from('goals').update({ current_amount: newAmount }).eq('id', selectedGoal.id);
+      fetchData(user.id); // Refresh
+    }
+  };
 
-    const newCurrentAmount = selectedGoal.currentAmount + amount;
-    await supabase
-      .from('goals')
-      .update({ current_amount: newCurrentAmount })
-      .eq('id', selectedGoal.id);
+  const handleAddGoal = async (newGoal: Omit<Goal, 'id' | 'userId' | 'currentAmount' | 'createdAt'>) => {
+    if (!user) return;
+    const { data } = await supabase.from('goals').insert({
+      user_id: user.id,
+      title: newGoal.title,
+      description: newGoal.description,
+      target_amount: newGoal.targetAmount,
+      interest_rate: newGoal.interestRate,
+      deadline: newGoal.deadline,
+      category: newGoal.category
+    }).select().single();
+    if (data) fetchData(user.id);
+  };
 
-    const newTx: Transaction = {
-      id: txData.id,
-      goalId: selectedGoal.id,
-      amount,
-      type: 'deposit',
-      category: selectedGoal.category,
-      createdAt: txData.created_at,
-      method: 'pix'
-    };
-    setTransactions(prev => [newTx, ...prev]);
-    setGoals(prev => prev.map(g => g.id === selectedGoal.id ? { ...g, currentAmount: newCurrentAmount } : g));
+  const handleAddTransaction = async (newTx: Omit<Transaction, 'id' | 'createdAt'>) => {
+    if (!user) return;
+    const { data } = await supabase.from('transactions').insert({
+      user_id: user.id,
+      amount: newTx.amount,
+      type: newTx.type,
+      category: newTx.category,
+      description: newTx.description,
+      method: newTx.method
+    }).select().single();
+    if (data) fetchData(user.id);
+  };
+
+  const handleDeleteGoal = async (goal: Goal) => {
+    if (!confirm('Deseja realmente excluir esta meta?')) return;
+    await supabase.from('goals').delete().eq('id', goal.id);
+    setGoals(prev => prev.filter(g => g.id !== goal.id));
   };
 
   const handleUpdateGoalDescription = async (goalId: string, description: string) => {
-    await supabase
-      .from('goals')
-      .update({ description: description })
-      .eq('id', goalId)
-      .eq('user_id', user!.id);
-    
+    await supabase.from('goals').update({ description }).eq('id', goalId);
     setGoals(prev => prev.map(g => g.id === goalId ? { ...g, description } : g));
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
+  const handleLogout = () => supabase.auth.signOut();
 
   const navItemClass = (tab: Tab) => `
     w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all
@@ -203,28 +199,20 @@ const App: React.FC = () => {
           <div className="bg-emerald-600 p-2 rounded-xl"><Wallet className="w-6 h-6 text-white" /></div>
           <h1 className="text-xl font-bold text-slate-900">Cofre Inteligente</h1>
         </div>
-        
         {profile && (
           <div className="px-6 pb-4 border-b border-slate-100">
             <p className="text-sm font-medium text-slate-700">{profile.fullName}</p>
             <p className="text-xs text-slate-400">{profile.email}</p>
           </div>
         )}
-
         <nav className="flex-1 px-4 space-y-1 py-4">
           <button onClick={() => setActiveTab('dashboard')} className={navItemClass('dashboard')}><LayoutDashboard className="w-5 h-5" /> Painel</button>
           <button onClick={() => setActiveTab('finance')} className={navItemClass('finance')}><DollarSign className="w-5 h-5" /> Meu Dinheiro</button>
           <button onClick={() => setActiveTab('goals')} className={navItemClass('goals')}><Target className="w-5 h-5" /> Metas</button>
           <button onClick={() => setActiveTab('investments')} className={navItemClass('investments')}><TrendingUp className="w-5 h-5" /> Investimentos</button>
         </nav>
-        
         <div className="p-4 border-t border-slate-100">
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-rose-500 hover:bg-rose-50 transition-all"
-          >
-            <LogOut className="w-5 h-5" /> Sair
-          </button>
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-rose-500 hover:bg-rose-50 transition-all"><LogOut className="w-5 h-5" /> Sair</button>
         </div>
       </aside>
 
@@ -233,24 +221,15 @@ const App: React.FC = () => {
           <div className="space-y-8 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600"><ArrowUpCircle className="w-5 h-5" /></div>
-                  <span className="font-bold text-slate-500 text-sm">Ganhos Totais</span>
-                </div>
+                <div className="flex items-center gap-3 mb-4"><div className="bg-emerald-100 p-2 rounded-lg text-emerald-600"><ArrowUpCircle className="w-5 h-5" /></div><span className="font-bold text-slate-500 text-sm">Ganhos</span></div>
                 <h3 className="text-2xl font-black">R$ {totals.income.toLocaleString('pt-BR')}</h3>
               </div>
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-rose-100 p-2 rounded-lg text-rose-600"><ArrowDownCircle className="w-5 h-5" /></div>
-                  <span className="font-bold text-slate-500 text-sm">Gastos Totais</span>
-                </div>
+                <div className="flex items-center gap-3 mb-4"><div className="bg-rose-100 p-2 rounded-lg text-rose-600"><ArrowDownCircle className="w-5 h-5" /></div><span className="font-bold text-slate-500 text-sm">Gastos</span></div>
                 <h3 className="text-2xl font-black">R$ {totals.expense.toLocaleString('pt-BR')}</h3>
               </div>
               <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
-                <div className="flex items-center gap-3 mb-4 text-slate-400">
-                  <div className="bg-slate-800 p-2 rounded-lg"><Wallet className="w-5 h-5" /></div>
-                  <span className="font-bold text-sm">Saldo Disponível</span>
-                </div>
+                <div className="flex items-center gap-3 mb-4 text-slate-400"><div className="bg-slate-800 p-2 rounded-lg"><Wallet className="w-5 h-5" /></div><span className="font-bold text-sm">Saldo</span></div>
                 <h3 className="text-2xl font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3>
               </div>
             </div>
@@ -259,35 +238,25 @@ const App: React.FC = () => {
               <div className="lg:col-span-8 space-y-8">
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                   <h3 className="font-bold mb-6 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-emerald-600"/> Progresso das Metas</h3>
-                  <div style={{ width: '100%', height: 300, minHeight: 300 }}>
+                  <div style={{ width: '100%', height: 300 }}>
                     <ResponsiveContainer aspect={2}>
                       <BarChart data={top3ProgressData} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                         <XAxis type="number" hide domain={[0, 100]} />
-                        <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 12, fontWeight: 600}} axisLine={false} />
+                        <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 10, fontWeight: 600}} axisLine={false} />
                         <RechartsTooltip cursor={{fill: '#f8fafc'}} />
                         <Bar dataKey="progresso" fill="#10b981" radius={[0, 10, 10, 0]} barSize={20} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {sortedByDeadline.slice(0, 2).map(g => (
-                    <GoalCard 
-                      key={g.id} 
-                      goal={g} 
-                      onDeposit={handleDeposit} 
-                      onDelete={() => {}} 
-                      onViewDetails={() => {}} 
-                      onUpdateDescription={handleUpdateGoalDescription}
-                    />
+                    <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={() => {}} onUpdateDescription={handleUpdateGoalDescription} />
                   ))}
                 </div>
               </div>
-              <div className="lg:col-span-4">
-                <AIAdvisor activeGoals={goals} />
-              </div>
+              <div className="lg:col-span-4"><AIAdvisor activeGoals={goals} /></div>
             </div>
           </div>
         )}
@@ -295,25 +264,22 @@ const App: React.FC = () => {
         {activeTab === 'finance' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-black">Extrato Detalhado</h2>
+              <h2 className="text-2xl font-black text-slate-800">Meu Dinheiro</h2>
+              <button onClick={() => setIsTransactionModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95">
+                <PlusCircle className="w-5 h-5" /> Registrar Valor
+              </button>
             </div>
-
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
               <table className="w-full text-left">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase">
-                  <tr>
-                    <th className="px-6 py-4">Data</th>
-                    <th className="px-6 py-4">Categoria</th>
-                    <th className="px-6 py-4">Descrição</th>
-                    <th className="px-6 py-4 text-right">Valor</th>
-                  </tr>
+                  <tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4">Descrição</th><th className="px-6 py-4 text-right">Valor</th></tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {transactions.map(t => (
                     <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 text-sm text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4 capitalize font-bold text-slate-700">{t.category}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{t.description || 'Transação'}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{t.description || (t.type === 'deposit' ? 'Depósito em Meta' : 'Transação')}</td>
                       <td className={`px-6 py-4 text-right font-black ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
                       </td>
@@ -326,17 +292,18 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'goals' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-right duration-500">
-            {goals.map(g => (
-              <GoalCard 
-                key={g.id} 
-                goal={g} 
-                onDeposit={handleDeposit} 
-                onDelete={() => {}} 
-                onViewDetails={() => {}} 
-                onUpdateDescription={handleUpdateGoalDescription}
-              />
-            ))}
+          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-black text-slate-800">Minhas Metas</h2>
+              <button onClick={() => setIsGoalModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95">
+                <Plus className="w-5 h-5" /> Nova Meta
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {goals.map(g => (
+                <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={() => {}} onUpdateDescription={handleUpdateGoalDescription} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -347,14 +314,9 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {selectedGoal && (
-        <PixModal 
-          isOpen={isPixOpen} 
-          onClose={() => setIsPixOpen(false)} 
-          goalTitle={selectedGoal.title} 
-          onConfirm={confirmDeposit} 
-        />
-      )}
+      <PixModal isOpen={isPixOpen} onClose={() => setIsPixOpen(false)} goalTitle={selectedGoal?.title || ''} onConfirm={confirmDeposit} />
+      <AddGoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onAdd={handleAddGoal} />
+      <AddTransactionModal isOpen={isTransactionModalOpen} onClose={() => setIsTransactionModalOpen(false)} onAdd={handleAddTransaction} />
     </div>
   );
 };
