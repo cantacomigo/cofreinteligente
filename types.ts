@@ -1,4 +1,3 @@
-
 export interface Goal {
   id: string;
   userId: string;
