@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Lightbulb, ShieldCheck, ArrowRight, Loader2, Info } from 'lucide-react';
-import { getInvestmentRecommendations } from '../services/geminiService';
-import { Goal } from '../types';
+import { getInvestmentRecommendations } from '../services/geminiService.ts';
+import { Goal } from '../types.ts';
 
 interface Recommendation {
   product: string;

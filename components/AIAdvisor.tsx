@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Send, Bot, User, Loader2 } from 'lucide-react';
-import { chatFinancialAdvisor } from '../services/geminiService';
-import { Goal } from '../types';
+import { chatFinancialAdvisor } from '../services/geminiService.ts';
+import { Goal } from '../types.ts';
 
 interface AIAdvisorProps {
   activeGoals: Goal[];

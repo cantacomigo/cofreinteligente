@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { TrendingUp, Plus, Calendar, Settings, Info, Trash2, Edit3, Check, X, FileText } from 'lucide-react';
-import { Goal } from '../types';
-import { CATEGORIES } from '../constants';
+import { Goal } from '../types.ts';
+import { CATEGORIES } from '../constants.tsx';
 
 interface GoalCardProps {
   goal: Goal;

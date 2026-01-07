@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { 
   Plane, Car, Home, GraduationCap, ShieldAlert, Sparkles, 
   ShoppingBag, Utensils, Zap, HeartPulse, Bus, Banknote, Briefcase, TrendingUp 
 } from 'lucide-react';
-import { UserProfile } from './types';
+import { UserProfile } from './types.ts';
 
 export const CATEGORIES = {
   travel: { label: 'Viagem', icon: <Plane className="w-5 h-5" />, color: 'bg-blue-500' },
