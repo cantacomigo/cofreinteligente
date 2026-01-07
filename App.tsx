@@ -1,9 +1,8 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Wallet, Target, TrendingUp, History, Plus, LayoutDashboard, 
   Trash2, Clock, Sparkles, ChevronRight, Layers, BarChart3,
-  ArrowUpCircle, ArrowDownCircle, DollarSign, PlusCircle
+  ArrowUpCircle, ArrowDownCircle, DollarSign, PlusCircle, LogOut, Loader2
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
@@ -16,54 +15,135 @@ import GoalCard from './components/GoalCard';
 import PixModal from './components/PixModal';
 import AIAdvisor from './components/AIAdvisor';
 import InvestmentRecommendations from './components/InvestmentRecommendations';
+import { useSession } from './contexts/SessionContextProvider';
+import Login from './pages/Login';
+import { supabase } from './integrations/supabase/client';
 
 type Tab = 'dashboard' | 'goals' | 'finance' | 'investments';
 
 const App: React.FC = () => {
+  const { session, user, isLoading } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
-  const [goals, setGoals] = useState<Goal[]>([
-    { 
-      id: 'g1', 
-      userId: MOCK_USER.id, 
-      title: 'Viagem Japão', 
-      description: 'Passagens e hospedagem em Tokyo e Kyoto.',
-      targetAmount: 15000, 
-      currentAmount: 4200, 
-      interestRate: 12.5, 
-      deadline: '2025-12-15', 
-      category: 'travel', 
-      createdAt: new Date().toISOString() 
-    },
-    { 
-      id: 'g2', 
-      userId: MOCK_USER.id, 
-      title: 'Reserva', 
-      description: 'Fundo para imprevistos e segurança familiar.',
-      targetAmount: 20000, 
-      currentAmount: 8500, 
-      interestRate: 10.75, 
-      deadline: '2026-06-30', 
-      category: 'emergency', 
-      createdAt: new Date().toISOString() 
-    }
-  ]);
-
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    { id: 't1', amount: 5000, type: 'income', category: 'salary', description: 'Salário Mensal', createdAt: new Date().toISOString(), method: 'manual' },
-    { id: 't2', amount: 1200, type: 'expense', category: 'food', description: 'Supermercado', createdAt: new Date().toISOString(), method: 'manual' },
-    { id: 't3', goalId: 'g1', amount: 500, type: 'deposit', category: 'travel', createdAt: new Date().toISOString(), method: 'pix' }
-  ]);
+  
+  // Estado para dados reais (inicialmente vazios)
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const [isPixOpen, setIsPixOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+
+  // Função para carregar dados do Supabase
+  const fetchData = async (userId: string) => {
+    // 1. Carregar Perfil
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
+    } else if (profileData) {
+      // Simulação de saldo total (será calculado a partir de transações reais)
+      const totalBalance = 4500.00; 
+      setProfile({
+        id: profileData.id,
+        email: user?.email || '',
+        fullName: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || user?.email || 'Usuário',
+        avatarUrl: profileData.avatar_url || undefined,
+        totalBalance: totalBalance,
+      });
+    }
+
+    // 2. Carregar Metas
+    const { data: goalsData, error: goalsError } = await supabase
+      .from('goals')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (goalsError) {
+      console.error("Error fetching goals:", goalsError);
+    } else if (goalsData) {
+      // Mapear para o tipo Goal do frontend
+      const mappedGoals: Goal[] = goalsData.map(g => ({
+        id: g.id,
+        userId: g.user_id,
+        title: g.title,
+        description: g.description || undefined,
+        targetAmount: Number(g.target_amount),
+        currentAmount: Number(g.current_amount),
+        interestRate: Number(g.interest_rate),
+        deadline: g.deadline,
+        category: g.category as Goal['category'],
+        createdAt: g.created_at,
+      }));
+      setGoals(mappedGoals);
+    }
+
+    // 3. Carregar Transações
+    const { data: transactionsData, error: transactionsError } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (transactionsError) {
+      console.error("Error fetching transactions:", transactionsError);
+    } else if (transactionsData) {
+      const mappedTransactions: Transaction[] = transactionsData.map(t => ({
+        id: t.id,
+        goalId: t.goal_id || undefined,
+        amount: Number(t.amount),
+        type: t.type as Transaction['type'],
+        category: t.category,
+        description: t.description || undefined,
+        createdAt: t.created_at,
+        method: t.method as Transaction['method'],
+      }));
+      setTransactions(mappedTransactions);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchData(user.id);
+    } else {
+      // Limpar estados se deslogado
+      setGoals([]);
+      setTransactions([]);
+      setProfile(null);
+    }
+  }, [user]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Login />;
+  }
 
   // Cálculos Financeiros
   const totals = useMemo(() => {
     const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
     const expense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
     const invested = goals.reduce((acc, g) => acc + g.currentAmount, 0);
-    return { income, expense, invested, balance: income - expense - invested };
-  }, [transactions, goals]);
+    
+    // O saldo disponível é o total de receitas menos despesas e o que já foi investido nas metas.
+    const balance = income - expense - invested;
+    
+    // Atualiza o profile com o saldo calculado (apenas em memória para este ciclo)
+    if (profile) {
+      profile.totalBalance = balance;
+    }
+
+    return { income, expense, invested, balance };
+  }, [transactions, goals, profile]);
 
   const sortedByDeadline = useMemo(() => 
     [...goals].sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()),
@@ -81,23 +161,71 @@ const App: React.FC = () => {
     setIsPixOpen(true);
   };
 
-  const confirmDeposit = (amount: number) => {
-    if (!selectedGoal) return;
+  const confirmDeposit = async (amount: number) => {
+    if (!selectedGoal || !user) return;
+    
+    // 1. Inserir Transação
+    const { data: txData, error: txError } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: user.id,
+        goal_id: selectedGoal.id,
+        amount: amount,
+        type: 'deposit',
+        category: selectedGoal.category,
+        method: 'pix'
+      })
+      .select()
+      .single();
+
+    if (txError) {
+      console.error("Erro ao inserir transação:", txError);
+      return;
+    }
+
+    // 2. Atualizar Meta
+    const newCurrentAmount = selectedGoal.currentAmount + amount;
+    const { error: goalError } = await supabase
+      .from('goals')
+      .update({ current_amount: newCurrentAmount })
+      .eq('id', selectedGoal.id);
+
+    if (goalError) {
+      console.error("Erro ao atualizar meta:", goalError);
+      return;
+    }
+
+    // 3. Atualizar estado local
     const newTx: Transaction = {
-      id: `tx-${Date.now()}`,
+      id: txData.id,
       goalId: selectedGoal.id,
       amount,
       type: 'deposit',
       category: selectedGoal.category,
-      createdAt: new Date().toISOString(),
+      createdAt: txData.created_at,
       method: 'pix'
     };
     setTransactions(prev => [newTx, ...prev]);
-    setGoals(prev => prev.map(g => g.id === selectedGoal.id ? { ...g, currentAmount: g.currentAmount + amount } : g));
+    setGoals(prev => prev.map(g => g.id === selectedGoal.id ? { ...g, currentAmount: newCurrentAmount } : g));
   };
 
-  const handleUpdateGoalDescription = (goalId: string, description: string) => {
+  const handleUpdateGoalDescription = async (goalId: string, description: string) => {
+    const { error } = await supabase
+      .from('goals')
+      .update({ description: description })
+      .eq('id', goalId)
+      .eq('user_id', user!.id);
+
+    if (error) {
+      console.error("Erro ao atualizar descrição:", error);
+      return;
+    }
+    
     setGoals(prev => prev.map(g => g.id === goalId ? { ...g, description } : g));
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
   const navItemClass = (tab: Tab) => `
@@ -113,12 +241,29 @@ const App: React.FC = () => {
           <div className="bg-emerald-600 p-2 rounded-xl"><Wallet className="w-6 h-6 text-white" /></div>
           <h1 className="text-xl font-bold text-slate-900">Cofre Inteligente</h1>
         </div>
-        <nav className="flex-1 px-4 space-y-1">
+        
+        {profile && (
+          <div className="px-6 pb-4 border-b border-slate-100">
+            <p className="text-sm font-medium text-slate-700">{profile.fullName}</p>
+            <p className="text-xs text-slate-400">{profile.email}</p>
+          </div>
+        )}
+
+        <nav className="flex-1 px-4 space-y-1 py-4">
           <button onClick={() => setActiveTab('dashboard')} className={navItemClass('dashboard')}><LayoutDashboard className="w-5 h-5" /> Painel</button>
           <button onClick={() => setActiveTab('finance')} className={navItemClass('finance')}><DollarSign className="w-5 h-5" /> Meu Dinheiro</button>
           <button onClick={() => setActiveTab('goals')} className={navItemClass('goals')}><Target className="w-5 h-5" /> Metas</button>
           <button onClick={() => setActiveTab('investments')} className={navItemClass('investments')}><TrendingUp className="w-5 h-5" /> Investimentos</button>
         </nav>
+        
+        <div className="p-4 border-t border-slate-100">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-rose-500 hover:bg-rose-50 transition-all"
+          >
+            <LogOut className="w-5 h-5" /> Sair
+          </button>
+        </div>
       </aside>
 
       <main className="flex-1 p-4 md:p-8 pt-24 md:pt-8 max-w-7xl mx-auto w-full">
