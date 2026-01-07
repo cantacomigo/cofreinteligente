@@ -11,10 +11,10 @@ import {
 } from 'recharts';
 import { Goal, Transaction, UserProfile } from './types';
 import { MOCK_USER, CATEGORIES, FINANCE_CATEGORIES } from './constants';
-import GoalCard from './src/components/GoalCard';
-import PixModal from './src/components/PixModal';
-import AIAdvisor from './src/components/AIAdvisor';
-import InvestmentRecommendations from './src/components/InvestmentRecommendations';
+import GoalCard from './components/GoalCard';
+import PixModal from './components/PixModal';
+import AIAdvisor from './components/AIAdvisor';
+import InvestmentRecommendations from './components/InvestmentRecommendations';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
