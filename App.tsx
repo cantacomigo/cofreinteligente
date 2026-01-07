@@ -25,7 +25,6 @@ const App: React.FC = () => {
   const { session, user, isLoading } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   
-  // Estado para dados reais (inicialmente vazios)
   const [goals, setGoals] = useState<Goal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -33,39 +32,50 @@ const App: React.FC = () => {
   const [isPixOpen, setIsPixOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
-  // Função para carregar dados do Supabase
+  // Mover cálculos para cima (antes dos returns condicionais)
+  const totals = useMemo(() => {
+    const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+    const expense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+    const invested = goals.reduce((acc, g) => acc + g.currentAmount, 0);
+    const balance = income - expense - invested;
+    
+    return { income, expense, invested, balance };
+  }, [transactions, goals]);
+
+  const sortedByDeadline = useMemo(() => 
+    [...goals].sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()),
+  [goals]);
+
+  const top3ProgressData = useMemo(() => {
+    return sortedByDeadline.slice(0, 3).map(g => ({
+      name: g.title,
+      progresso: Math.round((g.currentAmount / g.targetAmount) * 100)
+    }));
+  }, [sortedByDeadline]);
+
   const fetchData = async (userId: string) => {
-    // 1. Carregar Perfil
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, avatar_url')
       .eq('id', userId)
       .single();
 
-    if (profileError) {
-      console.error("Error fetching profile:", profileError);
-    } else if (profileData) {
-      // Simulação de saldo total (será calculado a partir de transações reais)
-      const totalBalance = 4500.00; 
+    if (profileData) {
       setProfile({
         id: profileData.id,
         email: user?.email || '',
         fullName: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || user?.email || 'Usuário',
         avatarUrl: profileData.avatar_url || undefined,
-        totalBalance: totalBalance,
+        totalBalance: totals.balance,
       });
     }
 
-    // 2. Carregar Metas
-    const { data: goalsData, error: goalsError } = await supabase
+    const { data: goalsData } = await supabase
       .from('goals')
       .select('*')
       .eq('user_id', userId);
 
-    if (goalsError) {
-      console.error("Error fetching goals:", goalsError);
-    } else if (goalsData) {
-      // Mapear para o tipo Goal do frontend
+    if (goalsData) {
       const mappedGoals: Goal[] = goalsData.map(g => ({
         id: g.id,
         userId: g.user_id,
@@ -81,16 +91,13 @@ const App: React.FC = () => {
       setGoals(mappedGoals);
     }
 
-    // 3. Carregar Transações
-    const { data: transactionsData, error: transactionsError } = await supabase
+    const { data: transactionsData } = await supabase
       .from('transactions')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (transactionsError) {
-      console.error("Error fetching transactions:", transactionsError);
-    } else if (transactionsData) {
+    if (transactionsData) {
       const mappedTransactions: Transaction[] = transactionsData.map(t => ({
         id: t.id,
         goalId: t.goal_id || undefined,
@@ -109,13 +116,13 @@ const App: React.FC = () => {
     if (user) {
       fetchData(user.id);
     } else {
-      // Limpar estados se deslogado
       setGoals([]);
       setTransactions([]);
       setProfile(null);
     }
   }, [user]);
 
+  // Agora os returns condicionais vêm após todos os hooks
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -128,34 +135,6 @@ const App: React.FC = () => {
     return <Login />;
   }
 
-  // Cálculos Financeiros
-  const totals = useMemo(() => {
-    const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-    const expense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-    const invested = goals.reduce((acc, g) => acc + g.currentAmount, 0);
-    
-    // O saldo disponível é o total de receitas menos despesas e o que já foi investido nas metas.
-    const balance = income - expense - invested;
-    
-    // Atualiza o profile com o saldo calculado (apenas em memória para este ciclo)
-    if (profile) {
-      profile.totalBalance = balance;
-    }
-
-    return { income, expense, invested, balance };
-  }, [transactions, goals, profile]);
-
-  const sortedByDeadline = useMemo(() => 
-    [...goals].sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()),
-  [goals]);
-
-  const top3ProgressData = useMemo(() => {
-    return sortedByDeadline.slice(0, 3).map(g => ({
-      name: g.title,
-      progresso: Math.round((g.currentAmount / g.targetAmount) * 100)
-    }));
-  }, [sortedByDeadline]);
-
   const handleDeposit = (goal: Goal) => {
     setSelectedGoal(goal);
     setIsPixOpen(true);
@@ -164,7 +143,6 @@ const App: React.FC = () => {
   const confirmDeposit = async (amount: number) => {
     if (!selectedGoal || !user) return;
     
-    // 1. Inserir Transação
     const { data: txData, error: txError } = await supabase
       .from('transactions')
       .insert({
@@ -178,24 +156,14 @@ const App: React.FC = () => {
       .select()
       .single();
 
-    if (txError) {
-      console.error("Erro ao inserir transação:", txError);
-      return;
-    }
+    if (txError) return;
 
-    // 2. Atualizar Meta
     const newCurrentAmount = selectedGoal.currentAmount + amount;
-    const { error: goalError } = await supabase
+    await supabase
       .from('goals')
       .update({ current_amount: newCurrentAmount })
       .eq('id', selectedGoal.id);
 
-    if (goalError) {
-      console.error("Erro ao atualizar meta:", goalError);
-      return;
-    }
-
-    // 3. Atualizar estado local
     const newTx: Transaction = {
       id: txData.id,
       goalId: selectedGoal.id,
@@ -210,16 +178,11 @@ const App: React.FC = () => {
   };
 
   const handleUpdateGoalDescription = async (goalId: string, description: string) => {
-    const { error } = await supabase
+    await supabase
       .from('goals')
       .update({ description: description })
       .eq('id', goalId)
       .eq('user_id', user!.id);
-
-    if (error) {
-      console.error("Erro ao atualizar descrição:", error);
-      return;
-    }
     
     setGoals(prev => prev.map(g => g.id === goalId ? { ...g, description } : g));
   };
@@ -235,7 +198,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      {/* Sidebar */}
       <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col fixed md:sticky top-0 h-auto md:h-screen z-40 shadow-sm">
         <div className="p-6 flex items-center gap-3">
           <div className="bg-emerald-600 p-2 rounded-xl"><Wallet className="w-6 h-6 text-white" /></div>
@@ -269,7 +231,6 @@ const App: React.FC = () => {
       <main className="flex-1 p-4 md:p-8 pt-24 md:pt-8 max-w-7xl mx-auto w-full">
         {activeTab === 'dashboard' && (
           <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Cards de Resumo */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
@@ -335,10 +296,6 @@ const App: React.FC = () => {
           <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-black">Extrato Detalhado</h2>
-              <div className="flex gap-2">
-                <button className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-sm"><PlusCircle className="w-4 h-4"/> Ganho</button>
-                <button className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-xl font-bold text-sm"><PlusCircle className="w-4 h-4"/> Gasto</button>
-              </div>
             </div>
 
             <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
