@@ -15,9 +15,9 @@ import GoalCard from './components/GoalCard';
 import PixModal from './components/PixModal';
 import AIAdvisor from './components/AIAdvisor';
 import InvestmentRecommendations from './components/InvestmentRecommendations';
-import { useSession } from './contexts/SessionContextProvider';
-import Login from './pages/Login';
-import { supabase } from './integrations/supabase/client';
+import { useSession } from './contexts/SessionContextProvider.tsx';
+import Login from './pages/Login.tsx';
+import { supabase } from './integrations/supabase/client.ts';
 
 type Tab = 'dashboard' | 'goals' | 'finance' | 'investments';
 
