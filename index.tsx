@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { SessionContextProvider } from './contexts/SessionContextProvider';
+import { SessionContextProvider } from './contexts/SessionContextProvider.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
