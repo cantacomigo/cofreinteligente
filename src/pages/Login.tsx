@@ -32,8 +32,8 @@ const Login: React.FC = () => {
                   inputBorder: '#e2e8f0', // slate-200
                 },
                 borderWidths: {
-                  button: '2px',
-                  input: '2px',
+                  buttonBorderWidth: '2px',
+                  inputBorderWidth: '2px',
                 },
                 radii: {
                   borderRadiusButton: '12px',
