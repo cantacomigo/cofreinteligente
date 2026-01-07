@@ -9,12 +9,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   AreaChart, Area
 } from 'recharts';
-import { Goal, Transaction, UserProfile } from './types';
-import { MOCK_USER, CATEGORIES, FINANCE_CATEGORIES } from './constants';
-import GoalCard from './components/GoalCard';
-import PixModal from './components/PixModal';
-import AIAdvisor from './components/AIAdvisor';
-import InvestmentRecommendations from './components/InvestmentRecommendations';
+import { Goal, Transaction, UserProfile } from './src/types.ts';
+import { MOCK_USER, CATEGORIES, FINANCE_CATEGORIES } from './src/constants.tsx';
+import GoalCard from './src/components/GoalCard.tsx';
+import PixModal from './src/components/PixModal.tsx';
+import AIAdvisor from './src/components/AIAdvisor.tsx';
+import InvestmentRecommendations from './src/components/InvestmentRecommendations.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';

@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { X, Copy, CheckCircle2 } from 'lucide-react';
-import ConfirmationModal from './ConfirmationModal';
+import ConfirmationModal from './ConfirmationModal.tsx';
 
 interface PixModalProps {
   isOpen: boolean;
