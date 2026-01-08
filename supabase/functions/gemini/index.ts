@@ -3,24 +3,11 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.21.0"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
-// Origens permitidas (localhost para dev e domínios do AI Studio)
-const ALLOWED_ORIGINS = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://ai.studio',
-  'https://*.ai.studio'
-];
-
-const getCorsHeaders = (origin: string | null) => {
-  // Se a origem for permitida ou se estivermos em ambiente de desenvolvimento aberto
-  // Para simplicidade no AI Studio, verificamos se contém ai.studio ou localhost
-  const isAllowed = origin && (origin.includes('ai.studio') || origin.includes('localhost'));
-  
-  return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : 'https://ai.studio',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-  };
+// Definindo cabeçalhos CORS para permitir acesso de qualquer origem
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
 // Função de sanitização robusta contra Prompt Injection
@@ -37,9 +24,6 @@ function sanitizeInput(input: any): string {
 }
 
 serve(async (req) => {
-  const origin = req.headers.get('Origin');
-  const corsHeaders = getCorsHeaders(origin);
-
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
