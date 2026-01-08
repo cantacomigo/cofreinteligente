@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { X, User, Camera, Save, Loader2, Upload, LogOut } from 'lucide-react';
+import { X, User, Camera, Save, Loader2, LogOut } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client.ts';
 
 interface ProfileSettingsModalProps {
@@ -29,17 +29,16 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOpen, onC
 
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.id}-${Math.random()}.${fileExt}`;
-      const filePath = fileName;
+      const fileName = `${Math.random()}.${fileExt}`;
+      // Caminho agora usa o ID do usuário como pasta para segurança via RLS
+      const filePath = `${profile.id}/${fileName}`;
 
-      // Upload para o bucket 'avatars'
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Pegar a URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
@@ -91,7 +90,6 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOpen, onC
 
         <div className="p-8 space-y-8">
           <form onSubmit={handleSave} className="space-y-8">
-            {/* Avatar Upload Section */}
             <div className="flex flex-col items-center">
               <div className="relative group">
                 <div className="w-32 h-32 rounded-[40px] bg-slate-100 border-4 border-slate-50 shadow-inner overflow-hidden flex items-center justify-center">
