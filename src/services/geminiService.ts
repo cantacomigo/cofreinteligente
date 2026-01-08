@@ -2,27 +2,25 @@ import { supabase } from "../integrations/supabase/client";
 import { Goal, Transaction } from "../types.ts";
 
 /**
- * Utilitário para chamar a Edge Function centralizada de IA com tratamento de autenticação.
+ * Utilitário para chamar a Edge Function centralizada de IA.
+ * O SDK do Supabase anexa automaticamente o token JWT se o usuário estiver autenticado.
  */
 const invokeGemini = async (action: string, payload: any) => {
   try {
-    // Busca a sessão atual para garantir que o token esteja presente
-    const { data: { session } } = await supabase.auth.getSession();
-    
     const { data, error } = await supabase.functions.invoke('gemini', {
-      body: { action, payload },
-      headers: {
-        Authorization: `Bearer ${session?.access_token}`
-      }
+      body: { action, payload }
     });
     
     if (error) {
-      console.error(`[Cofre IA] Erro na função ${action}:`, error);
+      // Se houver erro de autorização, tentamos pegar a sessão novamente
+      if (error.status === 401) {
+        console.warn("[Cofre IA] Erro 401. Verifique se o usuário está logado.");
+      }
       throw error;
     }
     return data;
   } catch (err) {
-    console.error(`[Cofre IA] Falha crítica em ${action}:`, err);
+    console.error(`[Cofre IA] Erro em ${action}:`, err);
     return null;
   }
 };

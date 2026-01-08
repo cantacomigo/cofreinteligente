@@ -9,121 +9,84 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    console.log("[gemini] Nova requisição recebida");
-
-    // 1. Verificação de Autenticação
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      console.error("[gemini] Erro: Cabeçalho de autorização ausente");
-      return new Response(JSON.stringify({ error: "Não autorizado" }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
+      console.error("[gemini] Falta cabeçalho Authorization")
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
     }
 
-    // 2. Variáveis de Ambiente
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    const token = authHeader.replace('Bearer ', '')
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
 
-    if (!apiKey) {
-      console.error("[gemini] Erro: GEMINI_API_KEY não configurada no Supabase");
-      return new Response(JSON.stringify({ error: "Configuração de IA ausente" }), { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    // 3. Validar Usuário no Supabase
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      console.error("[gemini] Erro de autenticação:", authError?.message);
-      return new Response(JSON.stringify({ error: "Sessão inválida" }), { 
-        status: 401, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    // 4. Parse do Body
-    const bodyText = await req.text();
-    if (!bodyText) {
-       console.error("[gemini] Erro: Corpo da requisição vazio");
-       return new Response(JSON.stringify({ error: "Body vazio" }), { status: 400, headers: corsHeaders });
-    }
+    // Validação robusta do usuário
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
     
-    const { action, payload } = JSON.parse(bodyText);
-    console.log(`[gemini] Executando ação: ${action}`);
+    if (userError || !user) {
+      console.error("[gemini] Usuário inválido ou token expirado:", userError?.message)
+      return new Response(JSON.stringify({ error: 'Invalid Token' }), { status: 401, headers: corsHeaders })
+    }
 
-    // 5. Inicializar Gemini
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const apiKey = Deno.env.get("GEMINI_API_KEY")
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'API Key missing' }), { status: 500, headers: corsHeaders })
+    }
+
+    const { action, payload } = await req.json()
+    console.log(`[gemini] Usuário ${user.id} solicitou ${action}`)
+
+    const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
-      systemInstruction: "Você é o assistente financeiro do Cofre Inteligente. Responda de forma concisa e útil. Se a tarefa pedir JSON, responda APENAS o JSON puro, sem markdown."
-    });
+      systemInstruction: "Você é um consultor financeiro. Responda APENAS JSON puro se solicitado, sem blocos de código markdown."
+    })
 
-    const sanitize = (str: any) => typeof str === 'string' ? str.replace(/[<>]/g, '') : '';
-
-    let prompt = "";
+    let prompt = ""
     switch (action) {
       case 'getFinancialInsight':
-        prompt = `Analise a meta "${sanitize(payload.goal.title)}" (Alvo: ${payload.goal.targetAmount}, Atual: ${payload.goal.currentAmount}). Saldo do usuário: ${payload.userBalance}. Retorne JSON: {"analysis": "string", "monthlySuggestion": number, "actionSteps": ["string"], "suggestedTargetAdjustment": number}`;
+        prompt = `Analise a meta ${payload.goal.title} (Faltam R$ ${payload.goal.targetAmount - payload.goal.currentAmount}). Saldo: R$ ${payload.userBalance}. JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["..."]}`
         break;
       case 'detectSubscriptions':
-        const txs = payload.transactions?.filter((t: any) => t.type === 'expense').slice(0, 15).map((t: any) => `${sanitize(t.description)}: R$${t.amount}`).join(', ') || "";
-        prompt = `Detecte assinaturas recorrentes nestas transações: ${txs}. Retorne JSON: [{"name": "string", "amount": number, "frequency": "string", "tip": "string"}]`;
+        prompt = `Identifique assinaturas recorrentes: ${JSON.stringify(payload.transactions)}. JSON: [{"name": "...", "amount": 0, "frequency": "...", "tip": "..."}]`
         break;
       case 'chatFinancialAdvisor':
-        prompt = `Metas do usuário: ${sanitize(payload.context)}. Usuário pergunta: ${sanitize(payload.message)}`;
+        prompt = `Contexto Metas: ${payload.context}. Pergunta: ${payload.message}`
         break;
       case 'getInvestmentRecommendations':
-        prompt = `Sugira 3 investimentos para estas metas: ${payload.goals?.map((g: any) => sanitize(g.title)).join(", ")}. Saldo: ${payload.balance}. Retorne JSON: [{"product": "string", "yield": "string", "liquidity": "string", "reasoning": "string"}]`;
+        prompt = `Sugira 3 investimentos para saldo R$ ${payload.balance} e metas ${payload.goals.map(g => g.title).join(", ")}. JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`
         break;
       case 'categorizeTransaction':
-        prompt = `Categorize: "${sanitize(payload.description)}" (${payload.type}). Retorne JSON: {"category": "string"}`;
+        prompt = `Categorize: ${payload.description} (${payload.type}). JSON: {"category": "..."}`
         break;
       case 'getCashFlowPrediction':
-        const history = payload.transactions?.slice(0, 10).map((t: any) => `${t.type}: R$${t.amount}`).join(', ') || "";
-        prompt = `Preveja saldo em 30 dias. Saldo atual: ${payload.balance}. Histórico: ${history}. Retorne JSON: {"predictedBalance": number, "alert": "string", "riskLevel": "low|medium|high"}`;
+        prompt = `Preveja saldo em 30 dias. Atual: R$ ${payload.balance}. Histórico: ${JSON.stringify(payload.transactions)}. JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`
         break;
       default:
-        console.error(`[gemini] Ação desconhecida: ${action}`);
-        return new Response(JSON.stringify({ error: "Ação inválida" }), { status: 400, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: 'Action not found' }), { status: 400, headers: corsHeaders })
     }
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    console.log("[gemini] Resposta gerada com sucesso");
-
+    const result = await model.generateContent(prompt)
+    const text = result.response.text()
+    
     try {
-      // Tenta extrair JSON caso o modelo tenha retornado texto extra ou markdown
-      const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      const cleaned = jsonMatch ? jsonMatch[0] : text;
-      const jsonResponse = JSON.parse(cleaned);
-      return new Response(JSON.stringify(jsonResponse), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } catch (parseError) {
-      // Se não for JSON, retorna como texto plano no campo 'text'
-      return new Response(JSON.stringify({ text }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Limpeza de possíveis blocos de código que a IA possa gerar por engano
+      const cleaned = text.replace(/```json|```/g, "").trim()
+      const json = JSON.parse(cleaned)
+      return new Response(JSON.stringify(json), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+    } catch {
+      return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
   } catch (error) {
-    console.error("[gemini] Erro crítico na função:", error.message);
-    return new Response(JSON.stringify({ error: error.message || "Erro interno no processamento de IA" }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("[gemini] Erro crítico:", error.message)
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders })
   }
-});
+})

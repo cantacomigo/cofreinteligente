@@ -12,8 +12,8 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Garante que o gráfico só tente medir o container após a montagem completa
-    const timer = setTimeout(() => setMounted(true), 100);
+    // Atraso intencional para garantir que o container DOM esteja pronto
+    const timer = setTimeout(() => setMounted(true), 250);
     return () => clearTimeout(timer);
   }, []);
 
@@ -42,12 +42,18 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
     return last6Months;
   }, [transactions]);
 
-  if (!mounted) return <div className="h-[200px] w-full bg-slate-50 animate-pulse rounded-xl" />;
+  if (!mounted) {
+    return (
+      <div className="w-full h-[200px] bg-slate-50 flex items-center justify-center rounded-xl">
+        <div className="w-1/2 h-2 bg-slate-200 animate-pulse rounded-full" />
+      </div>
+    );
+  }
 
   return (
-    <div className="h-[200px] w-full mt-2">
-      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-        <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+    <div className="w-full h-[200px] min-h-[200px] relative">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis 
             dataKey="month" 
@@ -61,8 +67,8 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
           />
           <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
-          <Bar name="Ganhos" dataKey="income" fill="#10b981" radius={[3, 3, 0, 0]} barSize={12} />
-          <Bar name="Gastos" dataKey="expense" fill="#f43f5e" radius={[3, 3, 0, 0]} barSize={12} />
+          <Bar name="Ganhos" dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={12} />
+          <Bar name="Gastos" dataKey="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={12} />
         </BarChart>
       </ResponsiveContainer>
     </div>
