@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Transaction } from '../types.ts';
 
@@ -9,6 +9,12 @@ interface CashFlowChartProps {
 }
 
 const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const data = React.useMemo(() => {
     const last6Months = Array.from({ length: 6 }, (_, i) => {
       const d = new Date();
@@ -34,9 +40,11 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
     return last6Months;
   }, [transactions]);
 
+  if (!mounted) return <div className="h-[200px] w-full bg-slate-50 animate-pulse rounded-xl" />;
+
   return (
-    <div className="h-[200px] w-full mt-2 min-w-0">
-      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+    <div className="h-[200px] w-full mt-2">
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis 
@@ -45,17 +53,12 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
             tickLine={false} 
             tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }}
           />
-          <YAxis 
-            hide 
-          />
+          <YAxis hide />
           <Tooltip 
             cursor={{ fill: '#f8fafc' }}
             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
           />
-          <Legend 
-            iconType="circle" 
-            wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} 
-          />
+          <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
           <Bar name="Ganhos" dataKey="income" fill="#10b981" radius={[3, 3, 0, 0]} barSize={12} />
           <Bar name="Gastos" dataKey="expense" fill="#f43f5e" radius={[3, 3, 0, 0]} barSize={12} />
         </BarChart>
