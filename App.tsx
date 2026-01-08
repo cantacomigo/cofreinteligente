@@ -5,7 +5,7 @@ import {
   Wallet, Target, LayoutDashboard, 
   ArrowUpCircle, ArrowDownCircle, DollarSign, PlusCircle, LogOut, Loader2, PieChart as PieChartIcon,
   BarChart3, Plus, Search, Settings, User, Bell, Menu, X as CloseIcon, Filter, ArrowRight,
-  PiggyBank
+  PiggyBank, Edit2, Trash2
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
@@ -55,6 +55,7 @@ const App: React.FC = () => {
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [editTransactionData, setEditTransactionData] = useState<Transaction | null>(null);
 
   const totals = useMemo(() => {
     const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
@@ -168,6 +169,26 @@ const App: React.FC = () => {
     if (!user) return; 
     await supabase.from('transactions').insert({ user_id: user.id, ...newTx }); 
     fetchData(user.id); 
+  };
+
+  const handleUpdateTransaction = async (id: string, updatedTx: any) => {
+    if (!user) return;
+    await supabase.from('transactions').update({
+      amount: updatedTx.amount,
+      category: updatedTx.category,
+      description: updatedTx.description,
+      method: updatedTx.method,
+      created_at: updatedTx.createdAt
+    }).eq('id', id);
+    fetchData(user.id);
+    setEditTransactionData(null);
+  };
+
+  const handleDeleteTransaction = async (id: string) => {
+    if (confirm('Deseja excluir este registro permanentemente?')) {
+      await supabase.from('transactions').delete().eq('id', id);
+      if (user) fetchData(user.id);
+    }
   };
 
   const handleDeleteGoal = async (goal: Goal) => { 
@@ -332,7 +353,7 @@ const App: React.FC = () => {
                 <button onClick={() => setFilterType('expense')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'expense' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Gastos</button>
               </div>
               <button 
-                onClick={() => setIsTransactionModalOpen(true)}
+                onClick={() => { setEditTransactionData(null); setIsTransactionModalOpen(true); }}
                 className="w-full md:w-auto px-6 py-3.5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
               >
                 <PlusCircle className="w-5 h-5" /> Novo Registro
@@ -429,7 +450,20 @@ const App: React.FC = () => {
                               </p>
                               <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Confirmado</p>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-slate-200 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                              <button 
+                                onClick={() => { setEditTransactionData(t); setIsTransactionModalOpen(true); }}
+                                className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteTransaction(t.id)}
+                                className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))
@@ -461,7 +495,15 @@ const App: React.FC = () => {
 
       <PixModal isOpen={isPixOpen} onClose={() => setIsPixOpen(false)} goalTitle={selectedGoal?.title || ''} onConfirm={confirmDeposit} />
       <AddGoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onAdd={handleAddGoal} />
-      <AddTransactionModal isOpen={isTransactionModalOpen} onClose={() => setIsTransactionModalOpen(false)} onAdd={handleAddTransaction} categories={customCategories} onRefreshCategories={() => user && fetchData(user.id)} />
+      <AddTransactionModal 
+        isOpen={isTransactionModalOpen} 
+        onClose={() => { setIsTransactionModalOpen(false); setEditTransactionData(null); }} 
+        onAdd={handleAddTransaction} 
+        onUpdate={handleUpdateTransaction}
+        categories={customCategories} 
+        onRefreshCategories={() => user && fetchData(user.id)} 
+        editData={editTransactionData}
+      />
       <SetBudgetModal isOpen={isBudgetModalOpen} onClose={() => setIsBudgetModalOpen(false)} onSave={handleSaveBudget} />
       {selectedGoal && <GoalAnalysisModal isOpen={isAnalysisOpen} onClose={() => setIsAnalysisOpen(false)} goal={selectedGoal} userBalance={totals.balance} />}
       {profile && <ProfileSettingsModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} profile={profile} onUpdate={() => user && fetchData(user.id)} />}

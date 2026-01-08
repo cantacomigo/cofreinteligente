@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, ArrowUpCircle, ArrowDownCircle, DollarSign, Plus, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { X, ArrowUpCircle, ArrowDownCircle, DollarSign, Plus, Trash2, Sparkles, Loader2, Save } from 'lucide-react';
 import { Transaction } from '../types.ts';
 import { supabase } from '../integrations/supabase/client.ts';
 import { useSession } from '../contexts/SessionContextProvider.tsx';
@@ -11,11 +11,21 @@ interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (transaction: Omit<Transaction, 'id' | 'createdAt'> & { createdAt: string }) => void;
+  onUpdate?: (id: string, transaction: any) => void;
   categories: { id: string, name: string, type: string }[];
   onRefreshCategories: () => void;
+  editData?: Transaction | null;
 }
 
-const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onAdd, categories, onRefreshCategories }) => {
+const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onAdd, 
+  onUpdate,
+  categories, 
+  onRefreshCategories,
+  editData 
+}) => {
   const { user } = useSession();
   const [formData, setFormData] = useState({
     amount: '',
@@ -31,11 +41,33 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
   const [isSuggesting, setIsSuggesting] = useState(false);
 
   useEffect(() => {
+    if (editData) {
+      setFormData({
+        amount: editData.amount.toString(),
+        type: editData.type,
+        category: editData.category,
+        description: editData.description || '',
+        method: editData.method,
+        date: new Date(editData.createdAt).toISOString().split('T')[0]
+      });
+    } else {
+      setFormData({
+        amount: '',
+        type: 'expense',
+        category: '',
+        description: '',
+        method: 'manual',
+        date: new Date().toISOString().split('T')[0]
+      });
+    }
+  }, [editData, isOpen]);
+
+  useEffect(() => {
     const filtered = categories.filter(c => c.type === formData.type);
-    if (filtered.length > 0 && !formData.category) {
+    if (filtered.length > 0 && !formData.category && !editData) {
       setFormData(prev => ({ ...prev, category: filtered[0].name }));
     }
-  }, [formData.type, categories]);
+  }, [formData.type, categories, editData]);
 
   if (!isOpen) return null;
 
@@ -44,7 +76,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
     setIsSuggesting(true);
     const result = await categorizeTransaction(formData.description, formData.type);
     if (result && result.category) {
-      // Verifica se a categoria já existe, se não, sugere criar
       const existing = categories.find(c => c.name.toLowerCase() === result.category.toLowerCase());
       if (existing) {
         setFormData(prev => ({ ...prev, category: existing.name }));
@@ -58,14 +89,20 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
+    const data = {
       amount: Number(formData.amount),
       type: formData.type,
       category: formData.category,
       description: formData.description,
       method: formData.method,
       createdAt: new Date(formData.date).toISOString()
-    });
+    };
+
+    if (editData && onUpdate) {
+      onUpdate(editData.id, data);
+    } else {
+      onAdd(data);
+    }
     onClose();
   };
 
@@ -92,8 +129,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
       <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
         <div className={`p-6 border-b flex justify-between items-center ${formData.type === 'income' ? 'bg-emerald-600' : 'bg-rose-600'} text-white transition-colors`}>
           <div className="flex items-center gap-2">
-            <DollarSign className="w-6 h-6" />
-            <h3 className="text-xl font-bold">Registrar {formData.type === 'income' ? 'Ganho' : 'Gasto'}</h3>
+            {editData ? <Save className="w-6 h-6" /> : <DollarSign className="w-6 h-6" />}
+            <h3 className="text-xl font-bold">{editData ? 'Editar' : 'Registrar'} {formData.type === 'income' ? 'Ganho' : 'Gasto'}</h3>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-white/20 rounded-full transition-colors">
             <X className="w-6 h-6" />
@@ -104,15 +141,17 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
           <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl">
             <button
               type="button"
+              disabled={!!editData}
               onClick={() => setFormData({ ...formData, type: 'income', category: '' })}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${formData.type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${formData.type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'} ${editData ? 'opacity-50' : ''}`}
             >
               <ArrowUpCircle className="w-4 h-4" /> Ganho
             </button>
             <button
               type="button"
+              disabled={!!editData}
               onClick={() => setFormData({ ...formData, type: 'expense', category: '' })}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${formData.type === 'expense' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${formData.type === 'expense' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500'} ${editData ? 'opacity-50' : ''}`}
             >
               <ArrowDownCircle className="w-4 h-4" /> Gasto
             </button>
@@ -151,15 +190,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
                 className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all"
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
-                onBlur={() => !formData.category && handleSuggestCategory()}
               />
-              {formData.description && (
+              {!editData && formData.description && (
                 <button
                   type="button"
                   onClick={handleSuggestCategory}
                   disabled={isSuggesting}
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
-                  title="IA Sugere Categoria"
                 >
                   {isSuggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                 </button>
@@ -219,7 +256,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
             disabled={!formData.category || !formData.amount}
             className={`w-full ${formData.type === 'income' ? 'bg-emerald-600' : 'bg-rose-600'} text-white font-bold py-4 rounded-2xl transition-all shadow-lg mt-4 hover:brightness-110 active:scale-[0.98] disabled:opacity-50`}
           >
-            Confirmar Registro
+            {editData ? 'Salvar Alterações' : 'Confirmar Registro'}
           </button>
         </form>
       </div>
