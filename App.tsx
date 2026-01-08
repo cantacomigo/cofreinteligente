@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
   const [challenges, setChallenges] = useState<any[]>([]);
+  const [customCategories, setCustomCategories] = useState<any[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const [isPixOpen, setIsPixOpen] = useState(false);
@@ -94,6 +95,25 @@ const App: React.FC = () => {
     }));
   }, [sortedByDeadline]);
 
+  const fetchCategories = async (userId: string) => {
+    const { data } = await supabase.from('transaction_categories').select('*').eq('user_id', userId);
+    if (data && data.length > 0) {
+      setCustomCategories(data);
+    } else {
+      // Se não tiver categorias, insere algumas padrão
+      const defaults = [
+        { user_id: userId, name: 'Salário', type: 'income' },
+        { user_id: userId, name: 'Freelance', type: 'income' },
+        { user_id: userId, name: 'Alimentação', type: 'expense' },
+        { user_id: userId, name: 'Transporte', type: 'expense' },
+        { user_id: userId, name: 'Lazer', type: 'expense' }
+      ];
+      await supabase.from('transaction_categories').insert(defaults);
+      const { data: newData } = await supabase.from('transaction_categories').select('*').eq('user_id', userId);
+      if (newData) setCustomCategories(newData);
+    }
+  };
+
   const fetchData = async (userId: string) => {
     try {
       const { data: profileData } = await supabase.from('profiles').select('id, first_name, last_name, avatar_url').eq('id', userId).maybeSingle();
@@ -129,6 +149,8 @@ const App: React.FC = () => {
 
       const { data: challengesData } = await supabase.from('challenges').select('*').eq('user_id', userId).eq('status', 'active');
       if (challengesData) setChallenges(challengesData);
+
+      await fetchCategories(userId);
 
     } catch (err) { console.error("Erro ao buscar dados:", err); }
   };
@@ -263,7 +285,13 @@ const App: React.FC = () => {
 
       <PixModal isOpen={isPixOpen} onClose={() => setIsPixOpen(false)} goalTitle={selectedGoal?.title || ''} onConfirm={confirmDeposit} />
       <AddGoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onAdd={handleAddGoal} />
-      <AddTransactionModal isOpen={isTransactionModalOpen} onClose={() => setIsTransactionModalOpen(false)} onAdd={handleAddTransaction} />
+      <AddTransactionModal 
+        isOpen={isTransactionModalOpen} 
+        onClose={() => setIsTransactionModalOpen(false)} 
+        onAdd={handleAddTransaction} 
+        categories={customCategories}
+        onRefreshCategories={() => user && fetchCategories(user.id)}
+      />
       <SetBudgetModal isOpen={isBudgetModalOpen} onClose={() => setIsBudgetModalOpen(false)} onSave={handleSaveBudget} />
       {selectedGoal && <GoalAnalysisModal isOpen={isAnalysisOpen} onClose={() => setIsAnalysisOpen(false)} goal={selectedGoal} userBalance={totals.balance} />}
     </div>

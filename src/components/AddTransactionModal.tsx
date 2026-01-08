@@ -1,25 +1,40 @@
 "use client";
 
-import React, { useState } from 'react';
-import { X, ArrowUpCircle, ArrowDownCircle, DollarSign, Calendar } from 'lucide-react';
-import { FINANCE_CATEGORIES } from '../constants.tsx';
+import React, { useState, useEffect } from 'react';
+import { X, ArrowUpCircle, ArrowDownCircle, DollarSign, Calendar, Plus, Trash2 } from 'lucide-react';
 import { Transaction } from '../types.ts';
+import { supabase } from '../integrations/supabase/client.ts';
+import { useSession } from '../contexts/SessionContextProvider.tsx';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (transaction: Omit<Transaction, 'id' | 'createdAt'> & { createdAt: string }) => void;
+  categories: { id: string, name: string, type: string }[];
+  onRefreshCategories: () => void;
 }
 
-const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onAdd }) => {
+const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onAdd, categories, onRefreshCategories }) => {
+  const { user } = useSession();
   const [formData, setFormData] = useState({
     amount: '',
     type: 'expense' as Transaction['type'],
-    category: 'shopping',
+    category: '',
     description: '',
     method: 'manual' as Transaction['method'],
     date: new Date().toISOString().split('T')[0]
   });
+
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  useEffect(() => {
+    // Reset category when type changes or categories list updates
+    const filtered = categories.filter(c => c.type === formData.type);
+    if (filtered.length > 0 && !formData.category) {
+      setFormData(prev => ({ ...prev, category: filtered[0].name }));
+    }
+  }, [formData.type, categories]);
 
   if (!isOpen) return null;
 
@@ -36,7 +51,29 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
     onClose();
   };
 
-  const categories = formData.type === 'income' ? FINANCE_CATEGORIES.income : FINANCE_CATEGORIES.expense;
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim() || !user) return;
+    
+    const { error } = await supabase.from('transaction_categories').insert({
+      user_id: user.id,
+      name: newCategoryName.trim(),
+      type: formData.type
+    });
+
+    if (!error) {
+      setNewCategoryName('');
+      setIsAddingCategory(false);
+      onRefreshCategories();
+    }
+  };
+
+  const handleDeleteCategory = async (catId: string) => {
+    if (!confirm('Deseja excluir esta categoria?')) return;
+    const { error } = await supabase.from('transaction_categories').delete().eq('id', catId);
+    if (!error) onRefreshCategories();
+  };
+
+  const filteredCategories = categories.filter(cat => cat.type === formData.type);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -55,14 +92,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
           <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl">
             <button
               type="button"
-              onClick={() => setFormData({ ...formData, type: 'income', category: 'salary' })}
+              onClick={() => setFormData({ ...formData, type: 'income', category: '' })}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${formData.type === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}
             >
               <ArrowUpCircle className="w-4 h-4" /> Ganho
             </button>
             <button
               type="button"
-              onClick={() => setFormData({ ...formData, type: 'expense', category: 'shopping' })}
+              onClick={() => setFormData({ ...formData, type: 'expense', category: '' })}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${formData.type === 'expense' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500'}`}
             >
               <ArrowDownCircle className="w-4 h-4" /> Gasto
@@ -82,31 +119,75 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Data Real</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  required
-                  type="date"
-                  className="w-full pl-9 pr-3 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all text-sm font-bold"
-                  value={formData.date}
-                  onChange={e => setFormData({ ...formData, date: e.target.value })}
-                />
-              </div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Data</label>
+              <input
+                required
+                type="date"
+                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all text-sm font-bold"
+                value={formData.date}
+                onChange={e => setFormData({ ...formData, date: e.target.value })}
+              />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Categoria</label>
-            <select
-              className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all appearance-none capitalize"
-              value={formData.category}
-              onChange={e => setFormData({ ...formData, category: e.target.value })}
-            >
-              {categories.map(cat => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
-              ))}
-            </select>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-bold text-slate-700">Categoria</label>
+              <button 
+                type="button"
+                onClick={() => setIsAddingCategory(!isAddingCategory)}
+                className="text-xs text-emerald-600 font-bold hover:underline flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" /> {isAddingCategory ? 'Cancelar' : 'Nova Categoria'}
+              </button>
+            </div>
+
+            {isAddingCategory ? (
+              <div className="flex gap-2 animate-in slide-in-from-top-2">
+                <input
+                  type="text"
+                  placeholder="Nome da categoria"
+                  className="flex-1 p-3 bg-slate-50 border-2 border-emerald-100 rounded-xl outline-none focus:border-emerald-500 text-sm"
+                  value={newCategoryName}
+                  onChange={e => setNewCategoryName(e.target.value)}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCategory}
+                  className="px-4 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors"
+                >
+                  Ok
+                </button>
+              </div>
+            ) : (
+              <div className="relative group">
+                <select
+                  required
+                  className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all appearance-none capitalize"
+                  value={formData.category}
+                  onChange={e => setFormData({ ...formData, category: e.target.value })}
+                >
+                  {filteredCategories.length === 0 && <option value="">Nenhuma categoria cadastrada</option>}
+                  {filteredCategories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+                {formData.category && filteredCategories.some(c => c.name === formData.category) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cat = filteredCategories.find(c => c.name === formData.category);
+                      if (cat) handleDeleteCategory(cat.id);
+                    }}
+                    className="absolute right-10 top-1/2 -translate-y-1/2 p-2 text-rose-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Excluir categoria"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -122,7 +203,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
 
           <button
             type="submit"
-            className={`w-full ${formData.type === 'income' ? 'bg-emerald-600' : 'bg-rose-600'} text-white font-bold py-4 rounded-2xl transition-all shadow-lg mt-4 hover:brightness-110 active:scale-[0.98]`}
+            disabled={!formData.category}
+            className={`w-full ${formData.type === 'income' ? 'bg-emerald-600' : 'bg-rose-600'} text-white font-bold py-4 rounded-2xl transition-all shadow-lg mt-4 hover:brightness-110 active:scale-[0.98] disabled:opacity-50`}
           >
             Confirmar Registro
           </button>
