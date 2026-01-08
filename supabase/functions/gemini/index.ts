@@ -27,11 +27,10 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    // Validação robusta do usuário
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
     
     if (userError || !user) {
-      console.error("[gemini] Usuário inválido ou token expirado:", userError?.message)
+      console.error("[gemini] Usuário inválido:", userError?.message)
       return new Response(JSON.stringify({ error: 'Invalid Token' }), { status: 401, headers: corsHeaders })
     }
 
@@ -41,9 +40,10 @@ serve(async (req) => {
     }
 
     const { action, payload } = await req.json()
-    console.log(`[gemini] Usuário ${user.id} solicitou ${action}`)
+    console.log(`[gemini] Ação: ${action}`)
 
     const genAI = new GoogleGenerativeAI(apiKey)
+    // Alterado para 'gemini-1.5-flash' explicitamente (pode variar conforme a versão da API do Google)
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
       systemInstruction: "Você é um consultor financeiro. Responda APENAS JSON puro se solicitado, sem blocos de código markdown."
@@ -52,22 +52,22 @@ serve(async (req) => {
     let prompt = ""
     switch (action) {
       case 'getFinancialInsight':
-        prompt = `Analise a meta ${payload.goal.title} (Faltam R$ ${payload.goal.targetAmount - payload.goal.currentAmount}). Saldo: R$ ${payload.userBalance}. JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["..."]}`
+        prompt = `Analise a meta ${payload.goal.title} (Faltam R$ ${payload.goal.targetAmount - payload.goal.currentAmount}). Saldo: R$ ${payload.userBalance}. Retorne JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["..."]}`
         break;
       case 'detectSubscriptions':
-        prompt = `Identifique assinaturas recorrentes: ${JSON.stringify(payload.transactions)}. JSON: [{"name": "...", "amount": 0, "frequency": "...", "tip": "..."}]`
+        prompt = `Identifique assinaturas recorrentes: ${JSON.stringify(payload.transactions)}. Retorne JSON: [{"name": "...", "amount": 0, "frequency": "...", "tip": "..."}]`
         break;
       case 'chatFinancialAdvisor':
         prompt = `Contexto Metas: ${payload.context}. Pergunta: ${payload.message}`
         break;
       case 'getInvestmentRecommendations':
-        prompt = `Sugira 3 investimentos para saldo R$ ${payload.balance} e metas ${payload.goals.map(g => g.title).join(", ")}. JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`
+        prompt = `Sugira 3 investimentos para saldo R$ ${payload.balance} e metas ${payload.goals.map(g => g.title).join(", ")}. Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`
         break;
       case 'categorizeTransaction':
-        prompt = `Categorize: ${payload.description} (${payload.type}). JSON: {"category": "..."}`
+        prompt = `Categorize: ${payload.description} (${payload.type}). Retorne JSON: {"category": "..."}`
         break;
       case 'getCashFlowPrediction':
-        prompt = `Preveja saldo em 30 dias. Atual: R$ ${payload.balance}. Histórico: ${JSON.stringify(payload.transactions)}. JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`
+        prompt = `Preveja saldo em 30 dias. Atual: R$ ${payload.balance}. Histórico: ${JSON.stringify(payload.transactions)}. Retorne JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`
         break;
       default:
         return new Response(JSON.stringify({ error: 'Action not found' }), { status: 400, headers: corsHeaders })
@@ -77,7 +77,6 @@ serve(async (req) => {
     const text = result.response.text()
     
     try {
-      // Limpeza de possíveis blocos de código que a IA possa gerar por engano
       const cleaned = text.replace(/```json|```/g, "").trim()
       const json = JSON.parse(cleaned)
       return new Response(JSON.stringify(json), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
