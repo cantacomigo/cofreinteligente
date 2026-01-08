@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   AreaChart, Area, Legend
 } from 'recharts';
-import { Goal, Transaction, UserProfile } from './src/types.ts';
+import { Goal, Transaction, UserProfile, AutomaticPlan } from './src/types.ts';
 import { MOCK_USER, CATEGORIES, FINANCE_CATEGORIES } from './src/constants.tsx';
 import GoalCard from './src/components/GoalCard.tsx';
 import PixModal from './src/components/PixModal.tsx';
@@ -18,6 +18,8 @@ import InvestmentRecommendations from './src/components/InvestmentRecommendation
 import AddGoalModal from './src/components/AddGoalModal.tsx';
 import AddTransactionModal from './src/components/AddTransactionModal.tsx';
 import GoalAnalysisModal from './src/components/GoalAnalysisModal.tsx';
+import AddPlanModal from './src/components/AddPlanModal.tsx';
+import AutomaticSavings from './src/components/AutomaticSavings.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
@@ -30,11 +32,13 @@ const App: React.FC = () => {
   
   const [goals, setGoals] = useState<Goal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [automaticPlans, setAutomaticPlans] = useState<AutomaticPlan[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const [isPixOpen, setIsPixOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
@@ -126,6 +130,23 @@ const App: React.FC = () => {
       }));
       setTransactions(mappedTransactions);
     }
+
+    const { data: plansData } = await supabase
+      .from('automatic_plans')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (plansData) {
+      const mappedPlans: AutomaticPlan[] = plansData.map(p => ({
+        id: p.id,
+        goalId: p.goal_id,
+        amount: Number(p.amount),
+        frequency: p.frequency as any,
+        nextExecution: p.next_execution,
+        active: p.active
+      }));
+      setAutomaticPlans(mappedPlans);
+    }
   };
 
   useEffect(() => {
@@ -191,6 +212,33 @@ const App: React.FC = () => {
       created_at: newTx.createdAt
     }).select().single();
     if (data) fetchData(user.id);
+  };
+
+  const handleAddPlan = async (plan: { goalId: string; amount: number; frequency: string }) => {
+    if (!user) return;
+    const nextExec = new Date();
+    nextExec.setDate(nextExec.getDate() + (plan.frequency === 'daily' ? 1 : plan.frequency === 'weekly' ? 7 : 30));
+
+    await supabase.from('automatic_plans').insert({
+      user_id: user.id,
+      goal_id: plan.goalId,
+      amount: plan.amount,
+      frequency: plan.frequency,
+      next_execution: nextExec.toISOString().split('T')[0],
+      active: true
+    });
+    fetchData(user.id);
+  };
+
+  const handleTogglePlan = async (id: string, active: boolean) => {
+    await supabase.from('automatic_plans').update({ active }).eq('id', id);
+    setAutomaticPlans(prev => prev.map(p => p.id === id ? { ...p, active } : p));
+  };
+
+  const handleDeletePlan = async (id: string) => {
+    if (!confirm('Deseja excluir esta automação?')) return;
+    await supabase.from('automatic_plans').delete().eq('id', id);
+    setAutomaticPlans(prev => prev.filter(p => p.id !== id));
   };
 
   const handleDeleteGoal = async (goal: Goal) => {
@@ -358,6 +406,13 @@ const App: React.FC = () => {
 
         {activeTab === 'investments' && (
           <div className="space-y-8 animate-in zoom-in duration-500">
+            <AutomaticSavings 
+              plans={automaticPlans} 
+              goals={goals} 
+              onToggle={handleTogglePlan} 
+              onDelete={handleDeletePlan}
+              onAddClick={() => setIsPlanModalOpen(true)}
+            />
             <InvestmentRecommendations goals={goals} balance={totals.invested} />
           </div>
         )}
@@ -366,6 +421,7 @@ const App: React.FC = () => {
       <PixModal isOpen={isPixOpen} onClose={() => setIsPixOpen(false)} goalTitle={selectedGoal?.title || ''} onConfirm={confirmDeposit} />
       <AddGoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onAdd={handleAddGoal} />
       <AddTransactionModal isOpen={isTransactionModalOpen} onClose={() => setIsTransactionModalOpen(false)} onAdd={handleAddTransaction} />
+      <AddPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} goals={goals} onAdd={handleAddPlan} />
       {selectedGoal && (
         <GoalAnalysisModal 
           isOpen={isAnalysisOpen} 
