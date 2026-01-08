@@ -35,25 +35,29 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
   }, [transactions]);
 
   return (
-    <div className="h-[300px] w-full mt-4">
+    <div className="h-[200px] w-full mt-2">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
+        <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis 
             dataKey="month" 
             axisLine={false} 
             tickLine={false} 
             tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }}
-            textAnchor="middle"
           />
-          <YAxis hide />
+          <YAxis 
+            hide 
+          />
           <Tooltip 
             cursor={{ fill: '#f8fafc' }}
-            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
           />
-          <Legend iconType="circle" />
-          <Bar name="Ganhos" dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} />
-          <Bar name="Gastos" dataKey="expense" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+          <Legend 
+            iconType="circle" 
+            wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} 
+          />
+          <Bar name="Ganhos" dataKey="income" fill="#10b981" radius={[3, 3, 0, 0]} barSize={12} />
+          <Bar name="Gastos" dataKey="expense" fill="#f43f5e" radius={[3, 3, 0, 0]} barSize={12} />
         </BarChart>
       </ResponsiveContainer>
     </div>
