@@ -218,8 +218,8 @@ const FinancePage: React.FC<FinancePageProps> = ({
                       </div>
                     </div>
                   </div>
-                )) // <-- Fechamento correto do map
-              }
+                ))
+              )}
             </div>
           </div>
         </div>
