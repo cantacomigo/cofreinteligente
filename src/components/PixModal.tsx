@@ -1,5 +1,8 @@
+"use client";
+
 import React, { useState } from 'react';
 import { X, Copy, CheckCircle2 } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import ConfirmationModal from './ConfirmationModal.tsx';
 
 interface PixModalProps {
@@ -33,10 +36,13 @@ const PixModal: React.FC<PixModalProps> = ({ isOpen, onClose, onConfirm, goalTit
     setShowConfirm(false);
   };
 
+  // Payload simulado para o QR Code (Issue #3 Fix: Mantém os dados locais)
+  const pixPayload = `00020126330014br.gov.bcb.pix0111simulado@pix520400005303986540${amount.length.toString().padStart(2, '0')}${amount}5802BR5916CofreInteligente6009Sao Paulo62070503***6304`;
+
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
           <div className="p-6 border-b flex justify-between items-center">
             <h3 className="text-xl font-bold text-slate-800">Depósito PIX</h3>
             <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full">
@@ -68,11 +74,12 @@ const PixModal: React.FC<PixModalProps> = ({ isOpen, onClose, onConfirm, goalTit
               </div>
             ) : (
               <div className="flex flex-col items-center space-y-6">
-                <div className="bg-slate-100 p-4 rounded-2xl">
-                  <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=pix-payload-simulated-${amount}`} 
-                    alt="QR Code PIX"
-                    className="w-48 h-48"
+                <div className="bg-white p-4 rounded-2xl border-2 border-slate-100">
+                  <QRCodeCanvas 
+                    value={pixPayload} 
+                    size={200}
+                    level="H"
+                    includeMargin={true}
                   />
                 </div>
                 <div className="w-full space-y-3">
@@ -90,7 +97,7 @@ const PixModal: React.FC<PixModalProps> = ({ isOpen, onClose, onConfirm, goalTit
                     Confirmar Pagamento
                   </button>
                 </div>
-                <p className="text-xs text-slate-400 text-center italic">Este é um ambiente de simulação. Nenhum valor real será cobrado.</p>
+                <p className="text-xs text-slate-400 text-center italic">Este é um ambiente de simulação. O QR Code é gerado localmente.</p>
               </div>
             )}
           </div>
