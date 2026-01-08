@@ -160,16 +160,58 @@ const App: React.FC = () => {
 
   const confirmDeposit = async (amount: number) => {
     if (!selectedGoal || !user) return;
-    await supabase.from('transactions').insert({ user_id: user.id, goal_id: selectedGoal.id, amount, type: 'deposit', category: selectedGoal.category, method: 'pix' });
+    await supabase.from('transactions').insert({ 
+      user_id: user.id, 
+      goal_id: selectedGoal.id, 
+      amount, 
+      type: 'deposit', 
+      category: selectedGoal.category, 
+      method: 'pix' 
+    });
     const newAmount = selectedGoal.currentAmount + amount;
     await supabase.from('goals').update({ current_amount: newAmount }).eq('id', selectedGoal.id);
     fetchData(user.id);
   };
 
-  const handleAddGoal = async (newGoal: any) => { if (!user) return; await supabase.from('goals').insert({ user_id: user.id, ...newGoal }); fetchData(user.id); };
-  const handleAddTransaction = async (newTx: any) => { if (!user) return; await supabase.from('transactions').insert({ user_id: user.id, ...newTx }); fetchData(user.id); };
-  const handleUpdateDescription = async (goalId: string, description: string) => { await supabase.from('goals').update({ description }).eq('id', goalId); if (user) fetchData(user.id); };
-  const handleDeleteGoal = async (goal: Goal) => { if (confirm('Excluir meta?')) { await supabase.from('goals').delete().eq('id', goal.id); if (user) fetchData(user.id); } };
+  const handleAddGoal = async (newGoal: any) => { 
+    if (!user) return; 
+    await supabase.from('goals').insert({ 
+      user_id: user.id, 
+      title: newGoal.title,
+      target_amount: newGoal.targetAmount,
+      deadline: newGoal.deadline,
+      category: newGoal.category,
+      interest_rate: newGoal.interestRate,
+      description: newGoal.description
+    }); 
+    fetchData(user.id); 
+  };
+
+  const handleAddTransaction = async (newTx: any) => { 
+    if (!user) return; 
+    await supabase.from('transactions').insert({ 
+      user_id: user.id, 
+      amount: newTx.amount,
+      type: newTx.type,
+      category: newTx.category,
+      description: newTx.description,
+      method: newTx.method,
+      created_at: newTx.createdAt
+    }); 
+    fetchData(user.id); 
+  };
+
+  const handleUpdateDescription = async (goalId: string, description: string) => { 
+    await supabase.from('goals').update({ description }).eq('id', goalId); 
+    if (user) fetchData(user.id); 
+  };
+
+  const handleDeleteGoal = async (goal: Goal) => { 
+    if (confirm('Excluir meta?')) { 
+      await supabase.from('goals').delete().eq('id', goal.id); 
+      if (user) fetchData(user.id); 
+    } 
+  };
   
   const handleSaveBudget = async (category: string, amount: number) => {
     if (!user) return;
@@ -189,7 +231,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-900">
-      {/* Sidebar Refinada */}
       <aside className="w-full md:w-60 bg-white border-r border-slate-200 flex flex-col fixed md:sticky top-0 h-auto md:h-screen z-40">
         <div className="p-6 flex items-center gap-2">
           <div className="bg-emerald-600 p-2 rounded-xl shadow-lg shadow-emerald-100">
@@ -229,13 +270,11 @@ const App: React.FC = () => {
         </div>
       </aside>
 
-      {/* Conteúdo Principal */}
       <main className="flex-1 p-4 md:p-8 pt-20 md:pt-8 max-w-7xl mx-auto w-full">
-        {/* Header de Seção */}
         <header className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-2xl font-black tracking-tight capitalize">{activeTab === 'dashboard' ? 'Bem-vindo de volta!' : activeTab}</h2>
-            <p className="text-slate-400 text-xs font-medium">Gerencie seu patrimônio com inteligência artificial.</p>
+            <h2 className="text-2xl font-black tracking-tight capitalize">{activeTab === 'dashboard' ? 'Painel de Controle' : activeTab}</h2>
+            <p className="text-slate-400 text-xs font-medium">Análise financeira em tempo real com IA.</p>
           </div>
           <div className="flex items-center gap-3">
             <button className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-colors shadow-sm">
@@ -257,9 +296,6 @@ const App: React.FC = () => {
                   <span className="text-xs font-bold text-slate-400">R$</span>
                   <h3 className="text-2xl font-black text-slate-900">{totals.income.toLocaleString('pt-BR')}</h3>
                 </div>
-                <div className="mt-3 flex items-center gap-1 text-[10px] text-emerald-600 font-bold bg-emerald-50 w-fit px-2 py-0.5 rounded-full">
-                  <ArrowUpCircle className="w-3 h-3" /> +12% esse mês
-                </div>
               </div>
               <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Despesas</span>
@@ -267,19 +303,13 @@ const App: React.FC = () => {
                   <span className="text-xs font-bold text-slate-400">R$</span>
                   <h3 className="text-2xl font-black text-slate-900">{totals.expense.toLocaleString('pt-BR')}</h3>
                 </div>
-                <div className="mt-3 flex items-center gap-1 text-[10px] text-rose-500 font-bold bg-rose-50 w-fit px-2 py-0.5 rounded-full">
-                  <ArrowDownCircle className="w-3 h-3" /> Controle estável
-                </div>
               </div>
               <div className="bg-slate-900 p-5 rounded-3xl text-white shadow-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-emerald-500/20 transition-all" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Saldo Disponível</span>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-16 -mt-16 blur-2xl transition-all" />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 block">Saldo</span>
                 <div className="flex items-baseline gap-1">
                   <span className="text-xs font-bold text-slate-400">R$</span>
                   <h3 className="text-2xl font-black text-emerald-400">{totals.balance.toLocaleString('pt-BR')}</h3>
-                </div>
-                <div className="mt-3 text-[10px] font-black text-slate-500 uppercase flex items-center gap-1">
-                  <Wallet className="w-3 h-3" /> Carteira Ativa
                 </div>
               </div>
               <FinancialHealthScore score={financialScore} />
@@ -288,13 +318,7 @@ const App: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               <div className="lg:col-span-8 space-y-6">
                 <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-black text-sm flex items-center gap-2"><BarChart3 className="w-4 h-4 text-emerald-600"/> Evolução Patrimonial</h3>
-                    <select className="bg-slate-50 border-none text-[10px] font-bold rounded-lg px-3 py-1.5 outline-none cursor-pointer">
-                      <option>Últimos 6 meses</option>
-                      <option>Último ano</option>
-                    </select>
-                  </div>
+                  <h3 className="font-black text-sm flex items-center gap-2 mb-6"><BarChart3 className="w-4 h-4 text-emerald-600"/> Fluxo Mensal</h3>
                   <CashFlowChart transactions={transactions} />
                 </div>
                 <InvestmentRecommendations goals={goals} balance={totals.balance} />
@@ -307,7 +331,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Outras abas seguem o mesmo padrão de modernização... */}
         {activeTab === 'finance' && (
           <div className="space-y-6">
             <div className="flex gap-4">
@@ -315,16 +338,16 @@ const App: React.FC = () => {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input 
                   type="text" 
-                  placeholder="Pesquisar por descrição ou categoria..." 
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all text-sm font-medium"
+                  placeholder="Pesquisar..." 
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:border-emerald-500 text-sm font-medium"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="flex gap-1 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                <button onClick={() => setFilterType('all')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${filterType === 'all' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}>Tudo</button>
-                <button onClick={() => setFilterType('income')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${filterType === 'income' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}>Ganhos</button>
-                <button onClick={() => setFilterType('expense')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${filterType === 'expense' ? 'bg-rose-500 text-white' : 'text-slate-400 hover:text-slate-600'}`}>Gastos</button>
+              <div className="flex gap-1 p-1.5 bg-white border border-slate-200 rounded-2xl">
+                <button onClick={() => setFilterType('all')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase ${filterType === 'all' ? 'bg-slate-900 text-white' : 'text-slate-400'}`}>Tudo</button>
+                <button onClick={() => setFilterType('income')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase ${filterType === 'income' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}>Ganhos</button>
+                <button onClick={() => setFilterType('expense')} className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase ${filterType === 'expense' ? 'bg-rose-500 text-white' : 'text-slate-400'}`}>Gastos</button>
               </div>
             </div>
 
@@ -332,14 +355,14 @@ const App: React.FC = () => {
               <div className="lg:col-span-4 space-y-6">
                 <BudgetTracker budgets={budgetProgress} onSetBudget={() => setIsBudgetModalOpen(true)} />
                 <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-                  <h3 className="font-black text-xs flex items-center gap-2 mb-4"><PieChartIcon className="w-4 h-4 text-emerald-600"/> Perfil de Consumo</h3>
-                  <div className="h-[200px] w-full">
+                  <h3 className="font-black text-xs flex items-center gap-2 mb-4"><PieChartIcon className="w-4 h-4 text-emerald-600"/> Gastos por Categoria</h3>
+                  <div className="h-[200px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie data={categoryChartData} innerRadius={50} outerRadius={70} paddingAngle={4} dataKey="value">
                           {categoryChartData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                         </Pie>
-                        <RechartsTooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                        <RechartsTooltip contentStyle={{borderRadius: '16px', border: 'none'}} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -347,10 +370,6 @@ const App: React.FC = () => {
               </div>
               <div className="lg:col-span-8">
                 <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-                  <div className="px-6 py-4 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Histórico de Movimentações</h4>
-                    <span className="text-[10px] font-bold text-slate-400">{filteredTransactions.length} registros</span>
-                  </div>
                   <table className="w-full text-left">
                     <tbody className="divide-y divide-slate-50">
                       {filteredTransactions.map(t => (
@@ -362,7 +381,7 @@ const App: React.FC = () => {
                               </div>
                               <div>
                                 <p className="font-bold text-slate-800 text-sm capitalize">{t.category}</p>
-                                <p className="text-[10px] text-slate-400 font-medium">{new Date(t.createdAt).toLocaleDateString('pt-BR', {day: 'numeric', month: 'long'})}</p>
+                                <p className="text-[10px] text-slate-400 font-medium">{new Date(t.createdAt).toLocaleDateString()}</p>
                               </div>
                             </div>
                           </td>
@@ -370,7 +389,6 @@ const App: React.FC = () => {
                             <p className={`font-black text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
                               {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
                             </p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{t.method}</p>
                           </td>
                         </tr>
                       ))}
@@ -392,13 +410,8 @@ const App: React.FC = () => {
                 onClick={() => setIsGoalModalOpen(true)}
                 className="bg-white border-2 border-dashed border-slate-200 rounded-[32px] p-8 flex flex-col items-center justify-center gap-4 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all group"
               >
-                <div className="bg-slate-50 p-4 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                  <Plus className="w-8 h-8 text-slate-400 group-hover:text-white" />
-                </div>
-                <div className="text-center">
-                  <p className="font-black text-slate-800">Nova Meta Financeira</p>
-                  <p className="text-xs text-slate-400 font-medium">Clique para planejar sua próxima conquista.</p>
-                </div>
+                <Plus className="w-8 h-8 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                <p className="font-black text-slate-800 text-sm">Nova Meta</p>
               </button>
             </div>
           </div>
