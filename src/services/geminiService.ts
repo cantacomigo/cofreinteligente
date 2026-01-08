@@ -2,18 +2,19 @@ import { supabase } from "../integrations/supabase/client";
 import { Goal, Transaction } from "../types.ts";
 
 /**
- * Invocação da Edge Function 'gemini'.
- * Pegamos o token manualmente da sessão para garantir a autenticação.
+ * Invoca a Edge Function 'gemini' garantindo a presença do token.
  */
 const invokeGemini = async (action: string, payload: any) => {
   try {
+    // Pegamos a sessão atual de forma assíncrona para garantir que o token é o mais recente
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session?.access_token) {
-      console.warn(`[IA] Ação ${action} ignorada: Usuário não autenticado.`);
+      console.warn(`[IA] Falha: Sessão não encontrada para a ação ${action}`);
       return null;
     }
 
+    // Chamada explícita passando o Authorization header
     const { data, error } = await supabase.functions.invoke('gemini', {
       body: { action, payload },
       headers: {
@@ -22,12 +23,12 @@ const invokeGemini = async (action: string, payload: any) => {
     });
     
     if (error) {
-      console.error(`[IA] Erro na resposta da função (${action}):`, error);
+      console.error(`[IA] Erro na Edge Function (${action}):`, error);
       return null;
     }
     return data;
   } catch (err) {
-    console.error(`[IA] Falha catastrófica em ${action}:`, err);
+    console.error(`[IA] Erro inesperado ao invocar IA (${action}):`, err);
     return null;
   }
 };

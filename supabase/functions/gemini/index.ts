@@ -9,6 +9,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // 1. Lidar com o preflight do CORS (ESSENCIAL para evitar 401 em navegadores)
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -16,64 +17,66 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      console.error("[gemini] Erro: Cabeçalho Authorization ausente");
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      console.error("[gemini] Erro: Authorization header não recebido");
+      return new Response(JSON.stringify({ error: 'Falta autorização' }), { status: 401, headers: corsHeaders })
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
 
+    // Inicializa o cliente Supabase dentro da função para validar o usuário
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
-
-    // Validar o token para garantir que o usuário é legítimo
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
     
     if (userError || !user) {
-      console.error("[gemini] Erro: Token inválido");
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
+      console.error("[gemini] Erro: Usuário não autenticado pelo token", userError?.message);
+      return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: corsHeaders })
     }
 
     const apiKey = Deno.env.get("GEMINI_API_KEY")
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'GEMINI_API_KEY missing' }), { status: 500, headers: corsHeaders })
+      console.error("[gemini] Erro: GEMINI_API_KEY não configurada no Supabase");
+      return new Response(JSON.stringify({ error: 'Configuração ausente' }), { status: 500, headers: corsHeaders })
     }
 
     const { action, payload } = await req.json()
+    console.log(`[gemini] Processando ação: ${action} para o usuário: ${user.id}`);
+
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
-      systemInstruction: "Você é um consultor financeiro. Responda estritamente em JSON puro sem blocos markdown quando solicitado."
+      systemInstruction: "Você é um consultor financeiro. Responda APENAS JSON se solicitado."
     })
 
     let prompt = ""
     switch (action) {
       case 'getFinancialInsight':
-        prompt = `Analise a meta ${payload.goal.title} (Faltam R$ ${payload.goal.targetAmount - payload.goal.currentAmount}). Saldo: R$ ${payload.userBalance}. JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["..."]}`
+        prompt = `Analise a meta ${payload.goal.title}. Alvo: R$ ${payload.goal.targetAmount}. Atual: R$ ${payload.goal.currentAmount}. JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["..."]}`
         break;
       case 'detectSubscriptions':
-        prompt = `Identifique assinaturas recorrentes nas transações: ${JSON.stringify(payload.transactions)}. JSON: [{"name": "...", "amount": 0, "frequency": "...", "tip": "..."}]`
+        prompt = `Assinaturas recorrentes em: ${JSON.stringify(payload.transactions)}. JSON: [{"name": "...", "amount": 0, "frequency": "...", "tip": "..."}]`
         break;
       case 'chatFinancialAdvisor':
-        prompt = `Contexto Metas: ${payload.context}. Pergunta: ${payload.message}`
+        prompt = `Contexto: ${payload.context}. Pergunta: ${payload.message}`
         break;
       case 'getInvestmentRecommendations':
-        prompt = `Sugira 3 investimentos para saldo R$ ${payload.balance} e metas ${JSON.stringify(payload.goals)}. JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`
+        prompt = `3 investimentos para R$ ${payload.balance} e metas ${JSON.stringify(payload.goals)}. JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`
         break;
       case 'categorizeTransaction':
-        prompt = `Categorize: ${payload.description} (${payload.type}). JSON: {"category": "..."}`
+        prompt = `Categorize: ${payload.description}. JSON: {"category": "..."}`
         break;
       case 'getCashFlowPrediction':
-        prompt = `Preveja saldo em 30 dias. Atual: R$ ${payload.balance}. Histórico: ${JSON.stringify(payload.transactions)}. JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`
+        prompt = `Previsão 30 dias. Saldo R$ ${payload.balance}. Histórico: ${JSON.stringify(payload.transactions)}. JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`
         break;
       default:
-        return new Response(JSON.stringify({ error: 'Action not found' }), { status: 400, headers: corsHeaders })
+        return new Response(JSON.stringify({ error: 'Ação desconhecida' }), { status: 400, headers: corsHeaders })
     }
 
     const result = await model.generateContent(prompt)
     const responseText = result.response.text()
     
-    // Limpar markdown caso a IA ignore a instrução
+    // Limpeza de blocos de código markdown que a IA às vezes insere
     const cleanJson = responseText.replace(/```json|```/g, "").trim();
     
     try {
@@ -85,6 +88,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[gemini] Erro crítico:", error.message)
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders })
+    return new Response(JSON.stringify({ error: 'Erro interno no servidor' }), { status: 500, headers: corsHeaders })
   }
 })
