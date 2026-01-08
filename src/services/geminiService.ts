@@ -1,8 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Goal } from "../types.ts";
 
-// Inicialização correta com objeto de opções para @google/genai
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+// A chave de API deve ser passada dentro de um objeto
+const API_KEY = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 const MODEL_NAME = "gemini-1.5-flash";
 
 export async function getFinancialInsight(goal: Goal, userBalance: number) {
@@ -38,9 +39,7 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
       }
     });
 
-    const jsonStr = response.text?.trim();
-    if (!jsonStr) return null;
-    return JSON.parse(jsonStr);
+    return JSON.parse(response.text);
   } catch (error) {
     console.error("[geminiService] Insight Error:", error);
     return null;
@@ -49,9 +48,8 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
 
 export async function getInvestmentRecommendations(goals: Goal[], balance: number) {
   const prompt = `
-    Sugira 3 investimentos para estas metas: ${goals.map(g => g.title).join(", ")}. 
+    Sugira 3 investimentos conservadores para estas metas: ${goals.map(g => g.title).join(", ")}. 
     Saldo atual investido: R$ ${balance}.
-    Foque em produtos conservadores (CDB, Tesouro, LCI/LCA).
   `;
 
   try {
@@ -76,8 +74,7 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
       }
     });
 
-    const jsonStr = response.text?.trim();
-    return jsonStr ? JSON.parse(jsonStr) : [];
+    return JSON.parse(response.text);
   } catch (error) {
     console.error("[geminiService] Recs Error:", error);
     return [];
@@ -94,7 +91,7 @@ export async function chatFinancialAdvisor(message: string, context: string) {
     });
 
     const response = await chat.sendMessage({ 
-      message: `Contexto do usuário: ${context}. Pergunta: ${message}` 
+      message: `Contexto das minhas metas: ${context}. Pergunta: ${message}` 
     });
     
     return response.text;
