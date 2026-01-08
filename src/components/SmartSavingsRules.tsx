@@ -1,14 +1,25 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ToggleLeft as Toggle, ToggleRight, Sparkles, Coins, Landmark } from 'lucide-react';
 
+const STORAGE_KEY = 'cofre_smart_rules';
+
 const SmartSavingsRules = () => {
-  const [rules, setRules] = useState({
-    roundUp: true,
-    salarySplit: false,
-    yieldAccelerator: true
+  // Inicializa o estado a partir do localStorage ou usa os valores padrão
+  const [rules, setRules] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {
+      roundUp: true,
+      salarySplit: false,
+      yieldAccelerator: true
+    };
   });
+
+  // Salva no localStorage sempre que uma regra mudar
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rules));
+  }, [rules]);
 
   const toggleRule = (rule: keyof typeof rules) => {
     setRules(prev => ({ ...prev, [rule]: !prev[rule] }));
