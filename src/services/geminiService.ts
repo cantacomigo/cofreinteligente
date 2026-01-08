@@ -4,7 +4,7 @@ import { Goal } from "../types.ts";
 // Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const MODEL_NAME = "gemini-2.0-flash";
+const MODEL_NAME = "gemini-1.5-flash";
 
 export async function getFinancialInsight(goal: Goal, userBalance: number) {
   const prompt = `
@@ -44,7 +44,7 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
     if (!jsonStr) return null;
     return JSON.parse(jsonStr);
   } catch (error) {
-    console.error("Gemini Error:", error);
+    console.error("[geminiService] Error:", error);
     return null;
   }
 }
@@ -84,7 +84,7 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
     const jsonStr = response.text?.trim();
     return jsonStr ? JSON.parse(jsonStr) : [];
   } catch (error) {
-    console.error("Gemini Recommendations Error:", error);
+    console.error("[geminiService] Recommendations Error:", error);
     return [];
   }
 }
