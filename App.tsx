@@ -19,6 +19,8 @@ import AIAdvisor from './src/components/AIAdvisor.tsx';
 import AddGoalModal from './src/components/AddGoalModal.tsx';
 import AddTransactionModal from './src/components/AddTransactionModal.tsx';
 import GoalAnalysisModal from './src/components/GoalAnalysisModal.tsx';
+import BudgetTracker from './src/components/BudgetTracker.tsx';
+import SetBudgetModal from './src/components/SetBudgetModal.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
@@ -31,11 +33,13 @@ const App: React.FC = () => {
   
   const [goals, setGoals] = useState<Goal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<any[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const [isPixOpen, setIsPixOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
@@ -47,6 +51,22 @@ const App: React.FC = () => {
     
     return { income, expense, invested, balance };
   }, [transactions, goals]);
+
+  const budgetProgress = useMemo(() => {
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    
+    return budgets.map(b => {
+      const spent = transactions
+        .filter(t => t.type === 'expense' && t.category === b.category)
+        .reduce((acc, t) => acc + t.amount, 0);
+      return {
+        category: b.category,
+        limit_amount: Number(b.limit_amount),
+        spent
+      };
+    });
+  }, [budgets, transactions]);
 
   const categoryChartData = useMemo(() => {
     const expenses = transactions.filter(t => t.type === 'expense');
@@ -88,124 +108,79 @@ const App: React.FC = () => {
         });
       }
 
-      const { data: goalsData, error: goalsError } = await supabase
-        .from('goals')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (!goalsError && goalsData) {
+      const { data: goalsData } = await supabase.from('goals').select('*').eq('user_id', userId);
+      if (goalsData) {
         setGoals(goalsData.map(g => ({
-          id: g.id,
-          userId: g.user_id,
-          title: g.title,
-          description: g.description || undefined,
-          targetAmount: Number(g.target_amount),
-          currentAmount: Number(g.current_amount),
-          interestRate: Number(g.interest_rate),
-          deadline: g.deadline,
-          category: g.category as Goal['category'],
+          id: g.id, userId: g.user_id, title: g.title, description: g.description || undefined,
+          targetAmount: Number(g.target_amount), currentAmount: Number(g.current_amount),
+          interestRate: Number(g.interest_rate), deadline: g.deadline, category: g.category as Goal['category'],
           createdAt: g.created_at,
         })));
       }
 
-      const { data: transactionsData, error: txError } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (!txError && transactionsData) {
+      const { data: transactionsData } = await supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+      if (transactionsData) {
         setTransactions(transactionsData.map(t => ({
-          id: t.id,
-          goalId: t.goal_id || undefined,
-          amount: Number(t.amount),
-          type: t.type as Transaction['type'],
-          category: t.category,
-          description: t.description || undefined,
-          createdAt: t.created_at,
-          method: t.method as Transaction['method'],
+          id: t.id, goalId: t.goal_id || undefined, amount: Number(t.amount),
+          type: t.type as Transaction['type'], category: t.category, description: t.description || undefined,
+          createdAt: t.created_at, method: t.method as Transaction['method'],
         })));
       }
 
+      const { data: budgetsData } = await supabase.from('budgets').select('*').eq('user_id', userId);
+      if (budgetsData) setBudgets(budgetsData);
+
     } catch (err) {
-      console.error("Erro fatal ao buscar dados:", err);
+      console.error("Erro ao buscar dados:", err);
     }
   };
 
   useEffect(() => {
-    if (user) {
-      fetchData(user.id);
-    }
+    if (user) fetchData(user.id);
   }, [user]);
 
-  if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
-    </div>
-  );
-
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 text-emerald-600 animate-spin" /></div>;
   if (!session) return <Login />;
 
-  const handleDeposit = (goal: Goal) => {
-    setSelectedGoal(goal);
-    setIsPixOpen(true);
-  };
-
-  const handleAnalyseGoal = (goal: Goal) => {
-    setSelectedGoal(goal);
-    setIsAnalysisOpen(true);
-  };
+  const handleDeposit = (goal: Goal) => { setSelectedGoal(goal); setIsPixOpen(true); };
+  const handleAnalyseGoal = (goal: Goal) => { setSelectedGoal(goal); setIsAnalysisOpen(true); };
 
   const confirmDeposit = async (amount: number) => {
     if (!selectedGoal || !user) return;
-    const { data: txData } = await supabase.from('transactions').insert({
-      user_id: user.id, goal_id: selectedGoal.id, amount, type: 'deposit', category: selectedGoal.category, method: 'pix'
-    }).select().single();
-
-    if (txData) {
-      const newAmount = selectedGoal.currentAmount + amount;
-      await supabase.from('goals').update({ current_amount: newAmount }).eq('id', selectedGoal.id);
-      fetchData(user.id);
-    }
+    await supabase.from('transactions').insert({ user_id: user.id, goal_id: selectedGoal.id, amount, type: 'deposit', category: selectedGoal.category, method: 'pix' });
+    const newAmount = selectedGoal.currentAmount + amount;
+    await supabase.from('goals').update({ current_amount: newAmount }).eq('id', selectedGoal.id);
+    fetchData(user.id);
   };
 
-  const handleAddGoal = async (newGoal: Omit<Goal, 'id' | 'userId' | 'currentAmount' | 'createdAt'>) => {
+  const handleAddGoal = async (newGoal: any) => {
     if (!user) return;
-    const { data } = await supabase.from('goals').insert({
-      user_id: user.id,
-      title: newGoal.title,
-      description: newGoal.description,
-      target_amount: newGoal.targetAmount,
-      interest_rate: newGoal.interestRate,
-      deadline: newGoal.deadline,
-      category: newGoal.category
-    }).select().single();
-    if (data) fetchData(user.id);
+    await supabase.from('goals').insert({ user_id: user.id, ...newGoal });
+    fetchData(user.id);
   };
 
-  const handleAddTransaction = async (newTx: Omit<Transaction, 'id' | 'createdAt'> & { createdAt: string }) => {
+  const handleAddTransaction = async (newTx: any) => {
     if (!user) return;
-    const { data } = await supabase.from('transactions').insert({
-      user_id: user.id,
-      amount: newTx.amount,
-      type: newTx.type,
-      category: newTx.category,
-      description: newTx.description,
-      method: newTx.method,
-      created_at: newTx.createdAt
-    }).select().single();
-    if (data) fetchData(user.id);
+    await supabase.from('transactions').insert({ user_id: user.id, ...newTx, amount: newTx.amount });
+    fetchData(user.id);
+  };
+
+  const handleSaveBudget = async (category: string, limit_amount: number) => {
+    if (!user) return;
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
+    
+    const { error } = await supabase.from('budgets').upsert({
+      user_id: user.id, category, limit_amount, month: currentMonth, year: currentYear
+    }, { onConflict: 'user_id, category, month, year' });
+    
+    if (!error) fetchData(user.id);
   };
 
   const handleDeleteGoal = async (goal: Goal) => {
     if (!confirm('Deseja realmente excluir esta meta?')) return;
     await supabase.from('goals').delete().eq('id', goal.id);
-    setGoals(prev => prev.filter(g => g.id !== goal.id));
-  };
-
-  const handleUpdateGoalDescription = async (goalId: string, description: string) => {
-    await supabase.from('goals').update({ description }).eq('id', goalId);
-    setGoals(prev => prev.map(g => g.id === goalId ? { ...g, description } : g));
+    fetchData(user.id);
   };
 
   const handleLogout = () => supabase.auth.signOut();
@@ -222,12 +197,6 @@ const App: React.FC = () => {
           <div className="bg-emerald-600 p-2 rounded-xl"><Wallet className="w-6 h-6 text-white" /></div>
           <h1 className="text-xl font-bold text-slate-900">Cofre Inteligente</h1>
         </div>
-        {profile && (
-          <div className="px-6 pb-4 border-b border-slate-100">
-            <p className="text-sm font-medium text-slate-700">{profile.fullName}</p>
-            <p className="text-xs text-slate-400">{profile.email}</p>
-          </div>
-        )}
         <nav className="flex-1 px-4 space-y-1 py-4">
           <button onClick={() => setActiveTab('dashboard')} className={navItemClass('dashboard')}><LayoutDashboard className="w-5 h-5" /> Painel</button>
           <button onClick={() => setActiveTab('finance')} className={navItemClass('finance')}><DollarSign className="w-5 h-5" /> Meu Dinheiro</button>
@@ -240,7 +209,7 @@ const App: React.FC = () => {
 
       <main className="flex-1 p-4 md:p-8 pt-24 md:pt-8 max-w-7xl mx-auto w-full">
         {activeTab === 'dashboard' && (
-          <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                 <div className="flex items-center gap-3 mb-4"><div className="bg-emerald-100 p-2 rounded-lg text-emerald-600"><ArrowUpCircle className="w-5 h-5" /></div><span className="font-bold text-slate-500 text-sm">Ganhos</span></div>
@@ -255,7 +224,6 @@ const App: React.FC = () => {
                 <h3 className="text-2xl font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3>
               </div>
             </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-8 space-y-8">
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
@@ -272,11 +240,6 @@ const App: React.FC = () => {
                     </ResponsiveContainer>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {sortedByDeadline.slice(0, 2).map(g => (
-                    <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} onUpdateDescription={handleUpdateGoalDescription} />
-                  ))}
-                </div>
               </div>
               <div className="lg:col-span-4"><AIAdvisor activeGoals={goals} /></div>
             </div>
@@ -284,7 +247,7 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'finance' && (
-          <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-black text-slate-800">Meu Dinheiro</h2>
               <button onClick={() => setIsTransactionModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95">
@@ -293,43 +256,28 @@ const App: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-4">
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm min-h-[400px]">
+              <div className="lg:col-span-4 space-y-6">
+                <BudgetTracker budgets={budgetProgress} onSetBudget={() => setIsBudgetModalOpen(true)} />
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                   <h3 className="font-bold mb-4 flex items-center gap-2"><PieChartIcon className="w-5 h-5 text-emerald-600"/> Divisão de Gastos</h3>
-                  <div className="h-[300px] w-full relative">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={categoryChartData}
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
-                        >
-                          {categoryChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip />
-                        <Legend iconType="circle" />
-                      </PieChart>
+                  <div className="h-[250px] w-full relative">
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart><Pie data={categoryChartData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">{categoryChartData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><RechartsTooltip /><Legend iconType="circle" /></PieChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
               </div>
-              
               <div className="lg:col-span-8">
                 <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                   <table className="w-full text-left">
                     <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase">
-                      <tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4">Descrição</th><th className="px-6 py-4 text-right">Valor</th></tr>
+                      <tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4 text-right">Valor</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {transactions.map(t => (
                         <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                           <td className="px-6 py-4 text-sm text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
                           <td className="px-6 py-4 capitalize font-bold text-slate-700">{t.category}</td>
-                          <td className="px-6 py-4 text-sm text-slate-600">{t.description || (t.type === 'deposit' ? 'Depósito em Meta' : 'Transação')}</td>
                           <td className={`px-6 py-4 text-right font-black ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
                           </td>
@@ -344,17 +292,13 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'goals' && (
-          <div className="space-y-6 animate-in slide-in-from-right duration-500">
+          <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-black text-slate-800">Minhas Metas</h2>
-              <button onClick={() => setIsGoalModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95">
-                <Plus className="w-5 h-5" /> Nova Meta
-              </button>
+              <button onClick={() => setIsGoalModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95"><Plus className="w-5 h-5" /> Nova Meta</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {goals.map(g => (
-                <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} onUpdateDescription={handleUpdateGoalDescription} />
-              ))}
+              {goals.map(g => (<GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} />))}
             </div>
           </div>
         )}
@@ -363,14 +307,8 @@ const App: React.FC = () => {
       <PixModal isOpen={isPixOpen} onClose={() => setIsPixOpen(false)} goalTitle={selectedGoal?.title || ''} onConfirm={confirmDeposit} />
       <AddGoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onAdd={handleAddGoal} />
       <AddTransactionModal isOpen={isTransactionModalOpen} onClose={() => setIsTransactionModalOpen(false)} onAdd={handleAddTransaction} />
-      {selectedGoal && (
-        <GoalAnalysisModal 
-          isOpen={isAnalysisOpen} 
-          onClose={() => setIsAnalysisOpen(false)} 
-          goal={selectedGoal} 
-          userBalance={totals.balance} 
-        />
-      )}
+      <SetBudgetModal isOpen={isBudgetModalOpen} onClose={() => setIsBudgetModalOpen(false)} onSave={handleSaveBudget} />
+      {selectedGoal && <GoalAnalysisModal isOpen={isAnalysisOpen} onClose={() => setIsAnalysisOpen(false)} goal={selectedGoal} userBalance={totals.balance} />}
     </div>
   );
 };
