@@ -74,78 +74,82 @@ const App: React.FC = () => {
   }, [sortedByDeadline]);
 
   const fetchData = async (userId: string) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('id, first_name, last_name, avatar_url')
-      .eq('id', userId)
-      .maybeSingle();
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
 
-    if (profileData) {
-      setProfile({
-        id: profileData.id,
-        email: user?.email || '',
-        fullName: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || user?.email || 'Usuário',
-        avatarUrl: profileData.avatar_url || undefined,
-        totalBalance: totals.balance,
-      });
-    }
+      if (profileData) {
+        setProfile({
+          id: profileData.id,
+          email: user?.email || '',
+          fullName: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || user?.email || 'Usuário',
+          avatarUrl: profileData.avatar_url || undefined,
+          totalBalance: totals.balance,
+        });
+      }
 
-    const { data: goalsData } = await supabase
-      .from('goals')
-      .select('*')
-      .eq('user_id', userId);
+      const { data: goalsData } = await supabase
+        .from('goals')
+        .select('*')
+        .eq('user_id', userId);
 
-    if (goalsData) {
-      const mappedGoals: Goal[] = goalsData.map(g => ({
-        id: g.id,
-        userId: g.user_id,
-        title: g.title,
-        description: g.description || undefined,
-        targetAmount: Number(g.target_amount),
-        currentAmount: Number(g.current_amount),
-        interestRate: Number(g.interest_rate),
-        deadline: g.deadline,
-        category: g.category as Goal['category'],
-        createdAt: g.created_at,
-      }));
-      setGoals(mappedGoals);
-    }
+      if (goalsData) {
+        const mappedGoals: Goal[] = goalsData.map(g => ({
+          id: g.id,
+          userId: g.user_id,
+          title: g.title,
+          description: g.description || undefined,
+          targetAmount: Number(g.target_amount),
+          currentAmount: Number(g.current_amount),
+          interestRate: Number(g.interest_rate),
+          deadline: g.deadline,
+          category: g.category as Goal['category'],
+          createdAt: g.created_at,
+        }));
+        setGoals(mappedGoals);
+      }
 
-    const { data: transactionsData } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-    if (transactionsData) {
-      const mappedTransactions: Transaction[] = transactionsData.map(t => ({
-        id: t.id,
-        goalId: t.goal_id || undefined,
-        amount: Number(t.amount),
-        type: t.type as Transaction['type'],
-        category: t.category,
-        description: t.description || undefined,
-        createdAt: t.created_at,
-        method: t.method as Transaction['method'],
-      }));
-      setTransactions(mappedTransactions);
-    }
+      if (transactionsData) {
+        const mappedTransactions: Transaction[] = transactionsData.map(t => ({
+          id: t.id,
+          goalId: t.goal_id || undefined,
+          amount: Number(t.amount),
+          type: t.type as Transaction['type'],
+          category: t.category,
+          description: t.description || undefined,
+          createdAt: t.created_at,
+          method: t.method as Transaction['method'],
+        }));
+        setTransactions(mappedTransactions);
+      }
 
-    const { data: plansData } = await supabase
-      .from('automatic_plans')
-      .select('*')
-      .eq('user_id', userId);
+      const { data: plansData } = await supabase
+        .from('automatic_plans')
+        .select('*')
+        .eq('user_id', userId);
 
-    if (plansData) {
-      const mappedPlans: AutomaticPlan[] = plansData.map(p => ({
-        id: p.id,
-        goalId: p.goal_id,
-        amount: Number(p.amount),
-        frequency: p.frequency as any,
-        nextExecution: p.next_execution,
-        active: p.active
-      }));
-      setAutomaticPlans(mappedPlans);
+      if (plansData) {
+        const mappedPlans: AutomaticPlan[] = plansData.map(p => ({
+          id: p.id,
+          goalId: p.goal_id,
+          amount: Number(p.amount),
+          frequency: p.frequency as any,
+          nextExecution: p.next_execution,
+          active: p.active
+        }));
+        setAutomaticPlans(mappedPlans);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar dados do Supabase:", err);
     }
   };
 
