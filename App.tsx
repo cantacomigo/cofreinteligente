@@ -24,6 +24,7 @@ import FinancialHealthScore from './src/components/FinancialHealthScore.tsx';
 import SavingsChallenges from './src/components/SavingsChallenges.tsx';
 import CashFlowChart from './src/components/CashFlowChart.tsx';
 import ProfileSettingsModal from './src/components/ProfileSettingsModal.tsx';
+import CashFlowPrediction from './src/components/CashFlowPrediction.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
@@ -167,11 +168,6 @@ const App: React.FC = () => {
     fetchData(user.id); 
   };
 
-  const handleUpdateDescription = async (goalId: string, description: string) => { 
-    await supabase.from('goals').update({ description }).eq('id', goalId); 
-    if (user) fetchData(user.id); 
-  };
-
   const handleDeleteGoal = async (goal: Goal) => { 
     if (confirm('Excluir meta?')) { 
       await supabase.from('goals').delete().eq('id', goal.id); 
@@ -291,6 +287,7 @@ const App: React.FC = () => {
                 <InvestmentRecommendations goals={goals} balance={totals.balance} />
               </div>
               <div className="lg:col-span-4 space-y-4 md:space-y-6">
+                <CashFlowPrediction transactions={transactions} balance={totals.balance} />
                 <AIAdvisor activeGoals={goals} />
                 <SavingsChallenges challenges={challenges} onAddChallenge={() => {}} onUpdateProgress={() => {}} />
               </div>
@@ -367,7 +364,7 @@ const App: React.FC = () => {
           <div className="space-y-4 md:space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {goals.map(g => (
-                <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} onUpdateDescription={handleUpdateDescription} />
+                <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} />
               ))}
               <button 
                 onClick={() => setIsGoalModalOpen(true)}

@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, ArrowUpCircle, ArrowDownCircle, DollarSign, Calendar, Plus, Trash2 } from 'lucide-react';
+import { X, ArrowUpCircle, ArrowDownCircle, DollarSign, Plus, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import { Transaction } from '../types.ts';
 import { supabase } from '../integrations/supabase/client.ts';
 import { useSession } from '../contexts/SessionContextProvider.tsx';
+import { categorizeTransaction } from '../services/geminiService.ts';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -27,9 +28,9 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
 
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   useEffect(() => {
-    // Reset category when type changes or categories list updates
     const filtered = categories.filter(c => c.type === formData.type);
     if (filtered.length > 0 && !formData.category) {
       setFormData(prev => ({ ...prev, category: filtered[0].name }));
@@ -37,6 +38,23 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
   }, [formData.type, categories]);
 
   if (!isOpen) return null;
+
+  const handleSuggestCategory = async () => {
+    if (!formData.description) return;
+    setIsSuggesting(true);
+    const result = await categorizeTransaction(formData.description, formData.type);
+    if (result && result.category) {
+      // Verifica se a categoria já existe, se não, sugere criar
+      const existing = categories.find(c => c.name.toLowerCase() === result.category.toLowerCase());
+      if (existing) {
+        setFormData(prev => ({ ...prev, category: existing.name }));
+      } else {
+        setNewCategoryName(result.category);
+        setIsAddingCategory(true);
+      }
+    }
+    setIsSuggesting(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,24 +71,18 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim() || !user) return;
-    
     const { error } = await supabase.from('transaction_categories').insert({
       user_id: user.id,
       name: newCategoryName.trim(),
       type: formData.type
     });
-
     if (!error) {
+      const addedName = newCategoryName.trim();
       setNewCategoryName('');
       setIsAddingCategory(false);
       onRefreshCategories();
+      setFormData(prev => ({ ...prev, category: addedName }));
     }
-  };
-
-  const handleDeleteCategory = async (catId: string) => {
-    if (!confirm('Deseja excluir esta categoria?')) return;
-    const { error } = await supabase.from('transaction_categories').delete().eq('id', catId);
-    if (!error) onRefreshCategories();
   };
 
   const filteredCategories = categories.filter(cat => cat.type === formData.type);
@@ -131,6 +143,31 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
           </div>
 
           <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Descrição</label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Ex: Almoço de domingo"
+                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                onBlur={() => !formData.category && handleSuggestCategory()}
+              />
+              {formData.description && (
+                <button
+                  type="button"
+                  onClick={handleSuggestCategory}
+                  disabled={isSuggesting}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+                  title="IA Sugere Categoria"
+                >
+                  {isSuggesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-bold text-slate-700">Categoria</label>
               <button 
@@ -161,49 +198,25 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
                 </button>
               </div>
             ) : (
-              <div className="relative group">
+              <div className="relative">
                 <select
                   required
                   className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all appearance-none capitalize"
                   value={formData.category}
                   onChange={e => setFormData({ ...formData, category: e.target.value })}
                 >
-                  {filteredCategories.length === 0 && <option value="">Nenhuma categoria cadastrada</option>}
+                  <option value="" disabled>Selecione uma categoria</option>
                   {filteredCategories.map(cat => (
                     <option key={cat.id} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
-                {formData.category && filteredCategories.some(c => c.name === formData.category) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const cat = filteredCategories.find(c => c.name === formData.category);
-                      if (cat) handleDeleteCategory(cat.id);
-                    }}
-                    className="absolute right-10 top-1/2 -translate-y-1/2 p-2 text-rose-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Excluir categoria"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
               </div>
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Descrição (Opcional)</label>
-            <input
-              type="text"
-              placeholder="Ex: Almoço de domingo"
-              className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all"
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
-            />
-          </div>
-
           <button
             type="submit"
-            disabled={!formData.category}
+            disabled={!formData.category || !formData.amount}
             className={`w-full ${formData.type === 'income' ? 'bg-emerald-600' : 'bg-rose-600'} text-white font-bold py-4 rounded-2xl transition-all shadow-lg mt-4 hover:brightness-110 active:scale-[0.98] disabled:opacity-50`}
           >
             Confirmar Registro
