@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { X, User, Camera, Save, Loader2, Upload } from 'lucide-react';
+import { X, User, Camera, Save, Loader2, Upload, LogOut } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client.ts';
 
 interface ProfileSettingsModalProps {
@@ -9,9 +9,10 @@ interface ProfileSettingsModalProps {
   onClose: () => void;
   profile: { id: string; fullName: string; avatarUrl?: string };
   onUpdate: () => void;
+  onLogout: () => void;
 }
 
-const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOpen, onClose, profile, onUpdate }) => {
+const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOpen, onClose, profile, onUpdate, onLogout }) => {
   const [firstName, setFirstName] = useState(profile.fullName.split(' ')[0] || '');
   const [lastName, setLastName] = useState(profile.fullName.split(' ').slice(1).join(' ') || '');
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl || '');
@@ -88,82 +89,84 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOpen, onC
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="p-8 space-y-8">
-          {/* Avatar Upload Section */}
-          <div className="flex flex-col items-center">
-            <div className="relative group">
-              <div className="w-32 h-32 rounded-[40px] bg-slate-100 border-4 border-slate-50 shadow-inner overflow-hidden flex items-center justify-center">
-                {uploading ? (
-                  <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-                ) : avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-12 h-12 text-slate-300" />
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-2 -right-2 bg-emerald-600 p-3 rounded-2xl text-white shadow-lg hover:bg-emerald-700 transition-all active:scale-90"
-              >
-                <Camera className="w-5 h-5" />
-              </button>
-              <input 
-                type="file" 
-                ref={fileInputRef}
-                className="hidden" 
-                accept="image/*"
-                onChange={handleFileUpload}
-              />
-            </div>
-            <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Toque na câmera para mudar a foto</p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome</label>
-                <input
-                  required
-                  type="text"
-                  className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all font-bold text-slate-700"
-                  value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
+        <div className="p-8 space-y-8">
+          <form onSubmit={handleSave} className="space-y-8">
+            {/* Avatar Upload Section */}
+            <div className="flex flex-col items-center">
+              <div className="relative group">
+                <div className="w-32 h-32 rounded-[40px] bg-slate-100 border-4 border-slate-50 shadow-inner overflow-hidden flex items-center justify-center">
+                  {uploading ? (
+                    <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                  ) : avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-12 h-12 text-slate-300" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 bg-emerald-600 p-3 rounded-2xl text-white shadow-lg hover:bg-emerald-700 transition-all active:scale-90"
+                >
+                  <Camera className="w-5 h-5" />
+                </button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleFileUpload}
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sobrenome</label>
-                <input
-                  required
-                  type="text"
-                  className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all font-bold text-slate-700"
-                  value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                />
+              <p className="mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Toque na câmera para mudar a foto</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome</label>
+                  <input
+                    required
+                    type="text"
+                    className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all font-bold text-slate-700"
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sobrenome</label>
+                  <input
+                    required
+                    type="text"
+                    className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all font-bold text-slate-700"
+                    value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">URL Direta (Opcional)</label>
-              <input
-                type="text"
-                placeholder="https://..."
-                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all text-xs font-medium"
-                value={avatarUrl}
-                onChange={e => setAvatarUrl(e.target.value)}
-              />
-            </div>
-          </div>
+            <button
+              type="submit"
+              disabled={loading || uploading}
+              className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl transition-all shadow-xl hover:bg-slate-800 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+              Salvar Alterações
+            </button>
+          </form>
 
-          <button
-            type="submit"
-            disabled={loading || uploading}
-            className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl transition-all shadow-xl hover:bg-slate-800 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            Salvar Perfil
-          </button>
-        </form>
+          <div className="pt-6 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full py-4 flex items-center justify-center gap-2 text-rose-500 font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 rounded-2xl transition-all active:scale-95"
+            >
+              <LogOut className="w-4 h-4" />
+              Sair da Conta
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -275,6 +275,9 @@ const App: React.FC = () => {
           <h1 className="text-xs font-black text-slate-900 tracking-tighter">COFRE.</h1>
         </div>
         <div className="flex items-center gap-1.5">
+          <button onClick={handleLogout} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Sair">
+            <LogOut className="w-4 h-4" />
+          </button>
           <button onClick={() => setIsTransactionModalOpen(true)} className="p-1.5 bg-emerald-600 text-white rounded-lg">
             <PlusCircle className="w-3.5 h-3.5" />
           </button>
@@ -526,7 +529,7 @@ const App: React.FC = () => {
       />
       <SetBudgetModal isOpen={isBudgetModalOpen} onClose={() => setIsBudgetModalOpen(false)} onSave={handleSaveBudget} />
       {selectedGoal && <GoalAnalysisModal isOpen={isAnalysisOpen} onClose={() => setIsAnalysisOpen(false)} goal={selectedGoal} userBalance={totals.balance} />}
-      {profile && <ProfileSettingsModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} profile={profile} onUpdate={() => user && fetchData(user.id)} />}
+      {profile && <ProfileSettingsModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} profile={profile} onUpdate={() => user && fetchData(user.id)} onLogout={handleLogout} />}
     </div>
   );
 };
