@@ -1,8 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Goal } from "../types.ts";
 
 const API_KEY = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
-const client = new GoogleGenAI({ apiKey: API_KEY });
+const genAI = new GoogleGenerativeAI(API_KEY);
 const MODEL_NAME = "gemini-1.5-flash";
 
 export async function getFinancialInsight(goal: Goal, userBalance: number) {
@@ -17,18 +17,14 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
   `;
 
   try {
-    const response = await client.models.generateContent({
+    const model = genAI.getGenerativeModel({ 
       model: MODEL_NAME,
-      contents: [{ 
-        role: "user", 
-        parts: [{ text: prompt }] 
-      }],
-      config: { 
-        responseMimeType: "application/json" 
-      }
+      generationConfig: { responseMimeType: "application/json" }
     });
 
-    return response.text ? JSON.parse(response.text) : null;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return JSON.parse(response.text());
   } catch (error) {
     console.error("[geminiService] Insight Error:", error);
     return null;
@@ -44,18 +40,14 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
   `;
 
   try {
-    const response = await client.models.generateContent({
+    const model = genAI.getGenerativeModel({ 
       model: MODEL_NAME,
-      contents: [{ 
-        role: "user", 
-        parts: [{ text: prompt }] 
-      }],
-      config: { 
-        responseMimeType: "application/json" 
-      }
+      generationConfig: { responseMimeType: "application/json" }
     });
 
-    return response.text ? JSON.parse(response.text) : [];
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return JSON.parse(response.text());
   } catch (error) {
     console.error("[geminiService] Recs Error:", error);
     return [];
@@ -66,15 +58,12 @@ export async function chatFinancialAdvisor(message: string, context: string) {
   if (!API_KEY) return "Serviço de IA indisponível no momento.";
 
   try {
-    const response = await client.models.generateContent({
-      model: MODEL_NAME,
-      contents: [{ 
-        role: "user",
-        parts: [{ text: `Contexto: ${context}. Você é um consultor financeiro brasileiro. Pergunta: ${message}` }] 
-      }]
-    });
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    const fullPrompt = `Contexto: ${context}. Você é um consultor financeiro brasileiro experiente. Pergunta: ${message}`;
     
-    return response.text || "Não consegui processar sua resposta.";
+    const result = await model.generateContent(fullPrompt);
+    const response = await result.response;
+    return response.text() || "Não consegui processar sua resposta.";
   } catch (error) {
     console.error("[geminiService] Chat Error:", error);
     return "Erro ao conectar com o consultor IA.";
