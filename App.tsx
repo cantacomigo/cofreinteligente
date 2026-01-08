@@ -59,7 +59,9 @@ const App: React.FC = () => {
   const [editTransactionData, setEditTransactionData] = useState<Transaction | null>(null);
 
   useEffect(() => {
-    setMounted(true);
+    // Delay estratégico para garantir que o DOM de layout (Flex/Grid) já calculou as dimensões
+    const timer = setTimeout(() => setMounted(true), 150);
+    return () => clearTimeout(timer);
   }, []);
 
   const totals = useMemo(() => {
@@ -355,7 +357,7 @@ const App: React.FC = () => {
               <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm w-full md:w-auto">
                 <button onClick={() => setFilterType('all')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'all' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Tudo</button>
                 <button onClick={() => setFilterType('income')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'income' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Ganhos</button>
-                <button onClick={() => setFilterType('expense')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'expense' ? 'bg-rose-50 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Gastos</button>
+                <button onClick={() => setFilterType('expense')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'expense' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Gastos</button>
               </div>
               <button 
                 onClick={() => { setEditTransactionData(null); setIsTransactionModalOpen(true); }}
@@ -379,7 +381,7 @@ const App: React.FC = () => {
                       <p className="text-[10px] text-slate-400 font-medium">Distribuição de gastos</p>
                     </div>
                   </div>
-                  <div className="h-[200px] w-full relative">
+                  <div className="h-[200px] w-full relative min-w-0">
                     {mounted ? (
                       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <PieChart>

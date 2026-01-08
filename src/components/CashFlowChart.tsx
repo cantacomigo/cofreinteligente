@@ -12,7 +12,9 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Garante que o gráfico só tente medir o container após a montagem completa
+    const timer = setTimeout(() => setMounted(true), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const data = React.useMemo(() => {
@@ -44,7 +46,7 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
 
   return (
     <div className="h-[200px] w-full mt-2">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis 

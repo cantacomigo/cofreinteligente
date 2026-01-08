@@ -1,10 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Goal, Transaction } from "../types.ts";
 
-// Prioriza variáveis do sistema e evita strings de erro comuns
-const API_KEY = process.env.GEMINI_API_KEY || "";
-const isKeyValid = typeof API_KEY === 'string' && API_KEY.length > 20;
+// Tenta obter a chave de múltiplas fontes possíveis no ambiente Vite
+const API_KEY = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
 
+// Validação rigorosa: A chave precisa existir e ter um tamanho mínimo real
+const isKeyValid = typeof API_KEY === 'string' && API_KEY.trim().length > 20;
+
+// Inicializa o SDK apenas se a chave for válida para evitar chamadas 404
 const genAI = isKeyValid ? new GoogleGenerativeAI(API_KEY) : null;
 const MODEL_NAME = "gemini-1.5-flash";
 
@@ -19,7 +22,7 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { 
-    console.error("[Gemini] API Error:", error);
+    console.warn("[Gemini Advisor] Insight bypass due to error/limit");
     return null; 
   }
 }
@@ -32,20 +35,20 @@ export async function detectSubscriptions(transactions: Transaction[]) {
       generationConfig: { responseMimeType: "application/json" }
     });
     const history = transactions.filter(t => t.type === 'expense').map(t => `${t.description}: R$${t.amount}`).join(', ');
-    const prompt = `Liste assinaturas recorrentes: ${history}. JSON array: [{"name": "...", "amount": 0, "frequency": "mensal", "tip": "..."}]`;
+    const prompt = `Identifique assinaturas recorrentes: ${history}. Retorne array JSON: [{"name": "...", "amount": 0, "frequency": "mensal", "tip": "..."}]`;
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { return []; }
 }
 
 export async function chatFinancialAdvisor(message: string, context: string) {
-  if (!genAI) return "IA não disponível. Verifique sua chave API.";
+  if (!genAI) return "A inteligência artificial não está configurada (Chave API ausente).";
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    const fullPrompt = `Contexto: ${context}. Pergunta: ${message}. Responda curto e em português.`;
+    const fullPrompt = `Contexto: ${context}. Usuário: ${message}. Responda de forma curta e prestativa em português brasileiro.`;
     const result = await model.generateContent(fullPrompt);
     return result.response.text();
-  } catch (error) { return "Erro ao processar consulta."; }
+  } catch (error) { return "Desculpe, tive um problema ao processar sua pergunta."; }
 }
 
 export async function getInvestmentRecommendations(goals: Goal[], balance: number) {
@@ -55,7 +58,7 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
       model: MODEL_NAME,
       generationConfig: { responseMimeType: "application/json" }
     });
-    const prompt = `Sugira 3 investimentos para metas: ${goals.map(g => g.title).join(", ")}. Saldo: ${balance}. JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`;
+    const prompt = `Sugira 3 investimentos para estas metas: ${goals.map(g => g.title).join(", ")}. Saldo atual: ${balance}. Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`;
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { return []; }
@@ -68,7 +71,7 @@ export async function categorizeTransaction(description: string, type: 'income' 
       model: MODEL_NAME,
       generationConfig: { responseMimeType: "application/json" }
     });
-    const prompt = `Categorize: "${description}" (${type}). JSON: {"category": "..."}`;
+    const prompt = `Categorize esta transação: "${description}" (Tipo: ${type}). Retorne JSON: {"category": "..."}`;
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { return null; }
@@ -82,7 +85,7 @@ export async function getCashFlowPrediction(transactions: Transaction[], balance
       generationConfig: { responseMimeType: "application/json" }
     });
     const history = transactions.slice(0, 10).map(t => `${t.type}: R$${t.amount}`).join(', ');
-    const prompt = `Preveja saldo em 30 dias. Saldo: ${balance}. Histórico: ${history}. JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low"}`;
+    const prompt = `Preveja o saldo para os próximos 30 dias. Saldo atual: ${balance}. Histórico recente: ${history}. Retorne JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low"}`;
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { return null; }
