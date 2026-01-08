@@ -75,6 +75,7 @@ const App: React.FC = () => {
 
   const fetchData = async (userId: string) => {
     try {
+      // 1. Perfil
       const { data: profileData } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url')
@@ -87,17 +88,18 @@ const App: React.FC = () => {
           email: user?.email || '',
           fullName: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || user?.email || 'Usuário',
           avatarUrl: profileData.avatar_url || undefined,
-          totalBalance: totals.balance,
+          totalBalance: 0, // Será atualizado pelo useMemo
         });
       }
 
-      const { data: goalsData } = await supabase
+      // 2. Metas
+      const { data: goalsData, error: goalsError } = await supabase
         .from('goals')
         .select('*')
         .eq('user_id', userId);
 
-      if (goalsData) {
-        const mappedGoals: Goal[] = goalsData.map(g => ({
+      if (!goalsError && goalsData) {
+        setGoals(goalsData.map(g => ({
           id: g.id,
           userId: g.user_id,
           title: g.title,
@@ -108,18 +110,18 @@ const App: React.FC = () => {
           deadline: g.deadline,
           category: g.category as Goal['category'],
           createdAt: g.created_at,
-        }));
-        setGoals(mappedGoals);
+        })));
       }
 
-      const { data: transactionsData } = await supabase
+      // 3. Transações
+      const { data: transactionsData, error: txError } = await supabase
         .from('transactions')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (transactionsData) {
-        const mappedTransactions: Transaction[] = transactionsData.map(t => ({
+      if (!txError && transactionsData) {
+        setTransactions(transactionsData.map(t => ({
           id: t.id,
           goalId: t.goal_id || undefined,
           amount: Number(t.amount),
@@ -128,28 +130,30 @@ const App: React.FC = () => {
           description: t.description || undefined,
           createdAt: t.created_at,
           method: t.method as Transaction['method'],
-        }));
-        setTransactions(mappedTransactions);
+        })));
       }
 
-      const { data: plansData } = await supabase
+      // 4. Planos Automáticos (com tratamento silencioso se falhar)
+      const { data: plansData, error: plansError } = await supabase
         .from('automatic_plans')
         .select('*')
         .eq('user_id', userId);
 
-      if (plansData) {
-        const mappedPlans: AutomaticPlan[] = plansData.map(p => ({
+      if (!plansError && plansData) {
+        setAutomaticPlans(plansData.map(p => ({
           id: p.id,
           goalId: p.goal_id,
           amount: Number(p.amount),
           frequency: p.frequency as any,
           nextExecution: p.next_execution,
           active: p.active
-        }));
-        setAutomaticPlans(mappedPlans);
+        })));
+      } else if (plansError) {
+        console.warn("Aviso: Tabela automatic_plans pode não estar pronta ainda.", plansError.message);
       }
+
     } catch (err) {
-      console.error("Erro ao buscar dados do Supabase:", err);
+      console.error("Erro fatal ao buscar dados:", err);
     }
   };
 
