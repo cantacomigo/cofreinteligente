@@ -35,8 +35,8 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions }) => {
   }, [transactions]);
 
   return (
-    <div className="h-[200px] w-full mt-2">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-[200px] w-full mt-2 min-w-0">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis 
