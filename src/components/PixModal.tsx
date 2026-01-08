@@ -21,6 +21,8 @@ const PixModal: React.FC<PixModalProps> = ({ isOpen, onClose, onConfirm, goalTit
   if (!isOpen) return null;
 
   const handleCopy = () => {
+    // Copia o payload do PIX para a área de transferência com segurança
+    navigator.clipboard.writeText(pixPayload);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -36,7 +38,7 @@ const PixModal: React.FC<PixModalProps> = ({ isOpen, onClose, onConfirm, goalTit
     setShowConfirm(false);
   };
 
-  // Payload simulado para o QR Code (Issue #3 Fix: Mantém os dados locais)
+  // Payload simulado para o QR Code gerado 100% no cliente para privacidade total
   const pixPayload = `00020126330014br.gov.bcb.pix0111simulado@pix520400005303986540${amount.length.toString().padStart(2, '0')}${amount}5802BR5916CofreInteligente6009Sao Paulo62070503***6304`;
 
   return (
@@ -75,6 +77,7 @@ const PixModal: React.FC<PixModalProps> = ({ isOpen, onClose, onConfirm, goalTit
             ) : (
               <div className="flex flex-col items-center space-y-6">
                 <div className="bg-white p-4 rounded-2xl border-2 border-slate-100">
+                  {/* Geração local de QR Code sem chamadas externas para proteger a privacidade */}
                   <QRCodeCanvas 
                     value={pixPayload} 
                     size={200}
@@ -92,12 +95,12 @@ const PixModal: React.FC<PixModalProps> = ({ isOpen, onClose, onConfirm, goalTit
                   </button>
                   <button
                     onClick={handleTriggerConfirmation}
-                    className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-all"
+                    className="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-slate-800 transition-all"
                   >
-                    Confirmar Pagamento
+                    Confirmar Pagamento Simulado
                   </button>
                 </div>
-                <p className="text-xs text-slate-400 text-center italic">Este é um ambiente de simulação. O QR Code é gerado localmente.</p>
+                <p className="text-xs text-slate-400 text-center italic">Ambiente seguro: QR Code gerado localmente.</p>
               </div>
             )}
           </div>
