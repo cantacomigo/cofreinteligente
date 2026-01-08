@@ -20,7 +20,7 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
     const response = await client.models.generateContent({
       model: MODEL_NAME,
       contents: [{ 
-        role: 'user', 
+        role: "user", 
         parts: [{ text: prompt }] 
       }],
       config: { 
@@ -47,7 +47,7 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
     const response = await client.models.generateContent({
       model: MODEL_NAME,
       contents: [{ 
-        role: 'user', 
+        role: "user", 
         parts: [{ text: prompt }] 
       }],
       config: { 
@@ -69,7 +69,7 @@ export async function chatFinancialAdvisor(message: string, context: string) {
     const response = await client.models.generateContent({
       model: MODEL_NAME,
       contents: [{ 
-        role: 'user',
+        role: "user",
         parts: [{ text: `Contexto: ${context}. Você é um consultor financeiro brasileiro. Pergunta: ${message}` }] 
       }]
     });
