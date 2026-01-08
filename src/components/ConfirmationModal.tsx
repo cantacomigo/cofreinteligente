@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -23,7 +23,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       <div className="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl scale-in-center animate-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center">
           <div className="bg-emerald-100 p-4 rounded-2xl mb-6">
-            <AlertCircle className="w-8 h-8 text-emerald-600" />
+            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
           </div>
           <h3 className="text-xl font-black text-slate-900 mb-2">{title}</h3>
           <p className="text-slate-500 mb-8 leading-relaxed">{message}</p>

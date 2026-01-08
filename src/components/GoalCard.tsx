@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { TrendingUp, Plus, Calendar, Settings, Trash2, Check, X, FileText, ChevronRight } from 'lucide-react';
 import { Goal } from '../types.ts';
 import { CATEGORIES } from '../constants.tsx';
@@ -8,13 +8,9 @@ interface GoalCardProps {
   onDeposit: (goal: Goal) => void;
   onViewDetails: (goal: Goal) => void;
   onDelete: (goal: Goal) => void;
-  onUpdateDescription?: (goalId: string, description: string) => void;
 }
 
-const GoalCard: React.FC<GoalCardProps> = ({ goal, onDeposit, onViewDetails, onDelete, onUpdateDescription }) => {
-  const [isEditingDesc, setIsEditingDesc] = useState(false);
-  const [tempDesc, setTempDesc] = useState(goal.description || '');
-
+const GoalCard: React.FC<GoalCardProps> = ({ goal, onDeposit, onViewDetails, onDelete }) => {
   const category = CATEGORIES[goal.category];
   const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
   
@@ -23,8 +19,9 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onDeposit, onViewDetails, onD
   const diffTime = Math.max(0, deadlineDate.getTime() - now.getTime());
   const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
   
-  const projectedValue = goal.currentAmount * Math.pow(1 + (goal.interestRate / 100), diffYears);
-  const estimatedYield = projectedValue - goal.currentAmount;
+  // Note: Projected value calculation is currently unused in the card UI, but kept for potential future use.
+  // const projectedValue = goal.currentAmount * Math.pow(1 + (goal.interestRate / 100), diffYears);
+  // const estimatedYield = projectedValue - goal.currentAmount;
 
   return (
     <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col group relative">
