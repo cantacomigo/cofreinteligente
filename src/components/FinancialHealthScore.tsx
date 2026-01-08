@@ -21,18 +21,18 @@ const FinancialHealthScore: React.FC<FinancialHealthScoreProps> = ({ score }) =>
   };
 
   const getLabel = (s: number) => {
-    if (s >= 80) return { text: 'Excelente', icon: <ShieldCheck className="w-5 h-5 text-emerald-500" /> };
-    if (s >= 50) return { text: 'Regular', icon: <TrendingUp className="w-5 h-5 text-amber-500" /> };
-    return { text: 'Crítica', icon: <AlertCircle className="w-5 h-5 text-rose-500" /> };
+    if (s >= 80) return { text: 'Excelente', icon: <ShieldCheck className="w-4 h-4 text-emerald-500" /> };
+    if (s >= 50) return { text: 'Regular', icon: <TrendingUp className="w-4 h-4 text-amber-500" /> };
+    return { text: 'Crítica', icon: <AlertCircle className="w-4 h-4 text-rose-500" /> };
   };
 
   const label = getLabel(score);
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
-      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-2">Saúde Financeira</h3>
+    <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
+      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Saúde Financeira</h3>
       
-      <div className="relative w-full h-32">
+      <div className="relative w-full h-24">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -41,29 +41,30 @@ const FinancialHealthScore: React.FC<FinancialHealthScoreProps> = ({ score }) =>
               cy="100%"
               startAngle={180}
               endAngle={0}
-              innerRadius={60}
-              outerRadius={80}
+              innerRadius={45}
+              outerRadius={60}
               paddingAngle={0}
               dataKey="value"
+              stroke="none"
             >
               <Cell fill={getColor(score)} />
               <Cell fill="#f1f5f9" />
             </Pie>
           </PieChart>
         </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
-          <span className="text-3xl font-black text-slate-900 leading-none">{score}</span>
-          <span className="text-[10px] font-bold text-slate-400">PONTOS</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
+          <span className="text-2xl font-black text-slate-900 leading-none">{score}</span>
+          <span className="text-[8px] font-bold text-slate-400">PONTOS</span>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
+      <div className="mt-2 flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
         {label.icon}
-        <span className="font-bold text-slate-700 text-sm">{label.text}</span>
+        <span className="font-bold text-slate-700 text-xs">{label.text}</span>
       </div>
       
-      <p className="mt-3 text-xs text-slate-400 leading-relaxed">
-        Seu score é baseado no progresso das suas metas e controle de gastos.
+      <p className="mt-2 text-[10px] text-slate-400 leading-tight">
+        Baseado em suas metas e gastos.
       </p>
     </div>
   );

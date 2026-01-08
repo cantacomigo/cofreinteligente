@@ -100,7 +100,6 @@ const App: React.FC = () => {
     if (data && data.length > 0) {
       setCustomCategories(data);
     } else {
-      // Se não tiver categorias, insere algumas padrão
       const defaults = [
         { user_id: userId, name: 'Salário', type: 'income' },
         { user_id: userId, name: 'Freelance', type: 'income' },
@@ -224,10 +223,28 @@ const App: React.FC = () => {
       <main className="flex-1 p-4 md:p-8 pt-24 md:pt-8 max-w-7xl mx-auto w-full">
         {activeTab === 'dashboard' && (
           <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><div className="flex items-center gap-3 mb-4"><div className="bg-emerald-100 p-2 rounded-lg text-emerald-600"><ArrowUpCircle className="w-5 h-5" /></div><span className="font-bold text-slate-500 text-sm">Ganhos</span></div><h3 className="text-2xl font-black">R$ {totals.income.toLocaleString('pt-BR')}</h3></div>
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><div className="flex items-center gap-3 mb-4"><div className="bg-rose-100 p-2 rounded-lg text-rose-600"><ArrowDownCircle className="w-5 h-5" /></div><span className="font-bold text-slate-500 text-sm">Gastos</span></div><h3 className="text-2xl font-black">R$ {totals.expense.toLocaleString('pt-BR')}</h3></div>
-              <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl"><div className="flex items-center gap-3 mb-4 text-slate-400"><div className="bg-slate-800 p-2 rounded-lg"><Wallet className="w-5 h-5" /></div><span className="font-bold text-sm">Saldo</span></div><h3 className="text-2xl font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="bg-emerald-100 p-1.5 rounded-lg text-emerald-600"><ArrowUpCircle className="w-4 h-4" /></div>
+                  <span className="font-bold text-slate-400 text-[10px] uppercase tracking-wider">Ganhos</span>
+                </div>
+                <h3 className="text-xl font-black text-slate-800">R$ {totals.income.toLocaleString('pt-BR')}</h3>
+              </div>
+              <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="bg-rose-100 p-1.5 rounded-lg text-rose-600"><ArrowDownCircle className="w-4 h-4" /></div>
+                  <span className="font-bold text-slate-400 text-[10px] uppercase tracking-wider">Gastos</span>
+                </div>
+                <h3 className="text-xl font-black text-slate-800">R$ {totals.expense.toLocaleString('pt-BR')}</h3>
+              </div>
+              <div className="bg-slate-900 p-4 rounded-3xl text-white shadow-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="bg-slate-800 p-1.5 rounded-lg text-slate-400"><Wallet className="w-4 h-4" /></div>
+                  <span className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Saldo</span>
+                </div>
+                <h3 className="text-xl font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3>
+              </div>
               <FinancialHealthScore score={financialScore} />
             </div>
             
