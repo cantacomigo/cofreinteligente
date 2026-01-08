@@ -4,6 +4,8 @@ import { Goal } from "../src/types.ts";
 // Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const MODEL_NAME = "gemini-2.0-flash";
+
 export async function getFinancialInsight(goal: Goal, userBalance: number) {
   const prompt = `
     Como um assistente financeiro sênior da fintech "Cofre Inteligente", analise a seguinte meta do usuário:
@@ -19,7 +21,7 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: MODEL_NAME,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -59,7 +61,7 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: MODEL_NAME,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -89,7 +91,7 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
 
 export async function chatFinancialAdvisor(message: string, context: string) {
   const chat = ai.chats.create({
-    model: 'gemini-3-flash-preview',
+    model: MODEL_NAME,
     config: {
       systemInstruction: 'Você é o consultor do Cofre Inteligente. Seja educado, use termos de educação financeira brasileiros e incentive o usuário a poupar com inteligência.',
     },
