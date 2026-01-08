@@ -1,40 +1,29 @@
 import { GoogleGenAI } from "@google/genai";
 import { Goal } from "../types.ts";
 
-// Inicialização com a chave de API conforme as regras do projeto
 const API_KEY = process.env.GEMINI_API_KEY || process.env.API_KEY || "";
 const client = new GoogleGenAI({ apiKey: API_KEY });
 const MODEL_NAME = "gemini-1.5-flash";
 
 export async function getFinancialInsight(goal: Goal, userBalance: number) {
+  if (!API_KEY) return null;
+
   const prompt = `
     Analise esta meta financeira:
-    Título: ${goal.title}
-    Valor Alvo: R$ ${goal.targetAmount}
-    Valor Atual: R$ ${goal.currentAmount}
-    Prazo: ${goal.deadline}
-    Saldo disponível do usuário: R$ ${userBalance}
-
-    Forneça uma análise curta, uma sugestão de valor para poupar mensalmente e 3 passos de ação.
-    Retorne OBRIGATORIAMENTE um JSON neste formato:
-    {
-      "analysis": "texto",
-      "monthlySuggestion": 100,
-      "actionSteps": ["passo 1", "passo 2", "passo 3"]
-    }
+    Título: ${goal.title}, Alvo: R$ ${goal.targetAmount}, Atual: R$ ${goal.currentAmount}, Prazo: ${goal.deadline}.
+    Saldo disponível do usuário: R$ ${userBalance}.
+    Forneça uma análise curta, sugestão mensal e 3 passos.
+    Retorne OBRIGATORIAMENTE um JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["...", "...", "..."]}
   `;
 
   try {
     const response = await client.models.generateContent({
       model: MODEL_NAME,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-      }
+      contents: [{ parts: [{ text: prompt }] }],
+      config: { responseMimeType: "application/json" }
     });
 
-    const text = response.text;
-    return text ? JSON.parse(text) : null;
+    return response.text ? JSON.parse(response.text) : null;
   } catch (error) {
     console.error("[geminiService] Insight Error:", error);
     return null;
@@ -42,23 +31,21 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
 }
 
 export async function getInvestmentRecommendations(goals: Goal[], balance: number) {
+  if (!API_KEY || goals.length === 0) return [];
+
   const prompt = `
-    Sugira 3 investimentos conservadores para estas metas: ${goals.map(g => g.title).join(", ")}. 
-    Saldo atual investido: R$ ${balance}.
-    Retorne um JSON (lista de objetos com product, yield, liquidity, reasoning).
+    Sugira 3 investimentos para: ${goals.map(g => g.title).join(", ")}. Saldo: R$ ${balance}.
+    Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]
   `;
 
   try {
     const response = await client.models.generateContent({
       model: MODEL_NAME,
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-      }
+      contents: [{ parts: [{ text: prompt }] }],
+      config: { responseMimeType: "application/json" }
     });
 
-    const text = response.text;
-    return text ? JSON.parse(text) : [];
+    return response.text ? JSON.parse(response.text) : [];
   } catch (error) {
     console.error("[geminiService] Recs Error:", error);
     return [];
@@ -66,18 +53,19 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
 }
 
 export async function chatFinancialAdvisor(message: string, context: string) {
+  if (!API_KEY) return "Serviço de IA indisponível no momento.";
+
   try {
     const response = await client.models.generateContent({
       model: MODEL_NAME,
       contents: [{ 
-        role: 'user', 
-        parts: [{ text: `Contexto: ${context}. Pergunta: ${message}. Instrução: Seja um consultor financeiro educado.` }] 
+        parts: [{ text: `Contexto: ${context}. Você é um consultor financeiro brasileiro. Pergunta: ${message}` }] 
       }]
     });
     
-    return response.text || "Desculpe, não consegui processar sua resposta.";
+    return response.text || "Não consegui processar sua resposta.";
   } catch (error) {
     console.error("[geminiService] Chat Error:", error);
-    return "Desculpe, tive um problema ao processar sua pergunta.";
+    return "Erro ao conectar com o consultor IA.";
   }
 }

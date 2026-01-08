@@ -7,10 +7,10 @@ import {
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  AreaChart, Area, Legend
+  Legend
 } from 'recharts';
 import { Goal, Transaction, UserProfile, AutomaticPlan } from './src/types.ts';
-import { MOCK_USER, CATEGORIES, FINANCE_CATEGORIES } from './src/constants.tsx';
+import { CATEGORIES } from './src/constants.tsx';
 import GoalCard from './src/components/GoalCard.tsx';
 import PixModal from './src/components/PixModal.tsx';
 import AIAdvisor from './src/components/AIAdvisor.tsx';
@@ -74,11 +74,12 @@ const App: React.FC = () => {
   }, [sortedByDeadline]);
 
   const fetchData = async (userId: string) => {
+    // Usamos maybeSingle para evitar erro 400/406 se o perfil não existir ainda
     const { data: profileData } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, avatar_url')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (profileData) {
       setProfile({
@@ -182,7 +183,7 @@ const App: React.FC = () => {
     if (txData) {
       const newAmount = selectedGoal.currentAmount + amount;
       await supabase.from('goals').update({ current_amount: newAmount }).eq('id', selectedGoal.id);
-      fetchData(user.id); // Refresh
+      fetchData(user.id);
     }
   };
 
@@ -305,9 +306,9 @@ const App: React.FC = () => {
               <div className="lg:col-span-8 space-y-8">
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                   <h3 className="font-bold mb-6 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-emerald-600"/> Progresso das Metas</h3>
-                  <div style={{ width: '100%', height: 300 }}>
-                    <ResponsiveContainer aspect={2}>
-                      <BarChart data={top3ProgressData} layout="vertical">
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={top3ProgressData} layout="vertical" margin={{ left: 10, right: 30 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                         <XAxis type="number" hide domain={[0, 100]} />
                         <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 10, fontWeight: 600}} axisLine={false} />
@@ -341,8 +342,8 @@ const App: React.FC = () => {
               <div className="lg:col-span-4">
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                   <h3 className="font-bold mb-4 flex items-center gap-2"><PieChartIcon className="w-5 h-5 text-emerald-600"/> Divisão de Gastos</h3>
-                  <div style={{ width: '100%', height: 250 }}>
-                    <ResponsiveContainer>
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={categoryChartData}
