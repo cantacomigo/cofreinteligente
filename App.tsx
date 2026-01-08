@@ -25,6 +25,8 @@ import SavingsChallenges from './src/components/SavingsChallenges.tsx';
 import CashFlowChart from './src/components/CashFlowChart.tsx';
 import ProfileSettingsModal from './src/components/ProfileSettingsModal.tsx';
 import CashFlowPrediction from './src/components/CashFlowPrediction.tsx';
+import SavingsOptimizer from './src/components/SavingsOptimizer.tsx';
+import SmartSavingsRules from './src/components/SmartSavingsRules.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
@@ -285,8 +287,10 @@ const App: React.FC = () => {
                   <CashFlowChart transactions={transactions} />
                 </div>
                 <InvestmentRecommendations goals={goals} balance={totals.balance} />
+                <SavingsOptimizer transactions={transactions} />
               </div>
               <div className="lg:col-span-4 space-y-4 md:space-y-6">
+                <SmartSavingsRules />
                 <CashFlowPrediction transactions={transactions} balance={totals.balance} />
                 <AIAdvisor activeGoals={goals} />
                 <SavingsChallenges challenges={challenges} onAddChallenge={() => {}} onUpdateProgress={() => {}} />

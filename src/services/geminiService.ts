@@ -12,10 +12,24 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
       model: MODEL_NAME,
       generationConfig: { responseMimeType: "application/json" }
     });
-    const prompt = `Analise esta meta financeira: Título: ${goal.title}, Alvo: R$ ${goal.targetAmount}, Atual: R$ ${goal.currentAmount}, Prazo: ${goal.deadline}. Saldo do usuário: R$ ${userBalance}. Forneça uma análise curta, sugestão mensal e 3 passos. Retorne JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["...", "...", "..."]}`;
+    const prompt = `Analise esta meta: ${goal.title}, Alvo: R$ ${goal.targetAmount}, Atual: R$ ${goal.currentAmount}. Saldo: R$ ${userBalance}. Sugira um ajuste dinâmico se a renda permitir. Retorne JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["...", "..."], "suggestedTargetAdjustment": 0}`;
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { return null; }
+}
+
+export async function detectSubscriptions(transactions: Transaction[]) {
+  if (!genAI || transactions.length < 5) return [];
+  try {
+    const model = genAI.getGenerativeModel({ 
+      model: MODEL_NAME,
+      generationConfig: { responseMimeType: "application/json" }
+    });
+    const history = transactions.filter(t => t.type === 'expense').map(t => `${t.description}: R$${t.amount}`).join(', ');
+    const prompt = `Identifique possíveis assinaturas recorrentes ou gastos fixos desnecessários neste histórico: ${history}. Retorne um array JSON: [{"name": "...", "amount": 0, "frequency": "mensal", "tip": "..."}]`;
+    const result = await model.generateContent(prompt);
+    return JSON.parse(result.response.text());
+  } catch (error) { return []; }
 }
 
 export async function categorizeTransaction(description: string, type: 'income' | 'expense') {
@@ -25,7 +39,7 @@ export async function categorizeTransaction(description: string, type: 'income' 
       model: MODEL_NAME,
       generationConfig: { responseMimeType: "application/json" }
     });
-    const prompt = `Categorize esta transação: "${description}" (${type}). Escolha uma categoria curta (ex: Alimentação, Transporte, Lazer, etc). Retorne JSON: {"category": "...", "reason": "..."}`;
+    const prompt = `Categorize: "${description}" (${type}). Retorne JSON: {"category": "...", "reason": "..."}`;
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { return null; }
@@ -38,21 +52,21 @@ export async function getCashFlowPrediction(transactions: Transaction[], balance
       model: MODEL_NAME,
       generationConfig: { responseMimeType: "application/json" }
     });
-    const history = transactions.slice(0, 20).map(t => `${t.type}: R$${t.amount} em ${t.category}`).join(', ');
-    const prompt = `Com base no histórico: ${history}. Saldo atual: R$${balance}. Preveja o saldo daqui a 30 dias e identifique 1 risco ou padrão (ex: gastos excessivos em delivery). Retorne JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`;
+    const history = transactions.slice(0, 20).map(t => `${t.type}: R$${t.amount}`).join(', ');
+    const prompt = `Preveja saldo em 30 dias. Saldo atual: R$${balance}. Histórico: ${history}. Retorne JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`;
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { return null; }
 }
 
 export async function chatFinancialAdvisor(message: string, context: string) {
-  if (!genAI) return "Consultoria indisponível. Por favor, configure sua GEMINI_API_KEY.";
+  if (!genAI) return "Consultoria indisponível.";
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    const fullPrompt = `Você é um consultor financeiro. Contexto: ${context}. Pergunta: ${message}`;
+    const fullPrompt = `Consultor financeiro. Contexto: ${context}. Pergunta: ${message}`;
     const result = await model.generateContent(fullPrompt);
     return result.response.text();
-  } catch (error) { return "Desculpe, não consigo responder agora."; }
+  } catch (error) { return "Erro no consultor."; }
 }
 
 export async function getInvestmentRecommendations(goals: Goal[], balance: number) {
@@ -62,7 +76,7 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
       model: MODEL_NAME,
       generationConfig: { responseMimeType: "application/json" }
     });
-    const prompt = `Sugira 3 investimentos brasileiros para as metas: ${goals.map(g => g.title).join(", ")}. Saldo: R$ ${balance}. Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`;
+    const prompt = `Sugira 3 investimentos para metas: ${goals.map(g => g.title).join(", ")}. Saldo: R$ ${balance}. Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`;
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { return []; }

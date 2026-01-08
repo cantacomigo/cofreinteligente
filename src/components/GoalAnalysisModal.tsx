@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, TrendingUp, Calendar, Target, Loader2, Lightbulb } from 'lucide-react';
+import { X, Sparkles, TrendingUp, Calendar, Target, Loader2, Lightbulb, ArrowUpRight } from 'lucide-react';
 import { Goal } from '../types.ts';
 import { getFinancialInsight } from '../services/geminiService.ts';
 
@@ -13,7 +13,7 @@ interface GoalAnalysisModalProps {
 }
 
 const GoalAnalysisModal: React.FC<GoalAnalysisModalProps> = ({ isOpen, onClose, goal, userBalance }) => {
-  const [insight, setInsight] = useState<{ analysis: string; monthlySuggestion: number; actionSteps: string[] } | null>(null);
+  const [insight, setInsight] = useState<{ analysis: string; monthlySuggestion: number; actionSteps: string[]; suggestedTargetAdjustment?: number } | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -51,7 +51,6 @@ const GoalAnalysisModal: React.FC<GoalAnalysisModalProps> = ({ isOpen, onClose, 
         </div>
 
         <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
-          {/* Status Atual */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progresso</span>
@@ -67,7 +66,6 @@ const GoalAnalysisModal: React.FC<GoalAnalysisModalProps> = ({ isOpen, onClose, 
             </div>
           </div>
 
-          {/* AI Insights */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-slate-800 font-bold">
               <Lightbulb className="w-5 h-5 text-amber-500" />
@@ -86,6 +84,18 @@ const GoalAnalysisModal: React.FC<GoalAnalysisModalProps> = ({ isOpen, onClose, 
                     "{insight.analysis}"
                   </p>
                 </div>
+
+                {insight.suggestedTargetAdjustment && insight.suggestedTargetAdjustment > 0 && (
+                  <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-indigo-400 uppercase">Sugestão de Upgrade</p>
+                      <p className="text-sm font-bold text-indigo-900">Aumentar alvo em R$ {insight.suggestedTargetAdjustment.toLocaleString('pt-BR')}?</p>
+                    </div>
+                    <button className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-all">
+                      <ArrowUpRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
