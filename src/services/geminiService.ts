@@ -19,8 +19,13 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
   try {
     const response = await client.models.generateContent({
       model: MODEL_NAME,
-      contents: [{ parts: [{ text: prompt }] }],
-      config: { responseMimeType: "application/json" }
+      contents: [{ 
+        role: 'user', 
+        parts: [{ text: prompt }] 
+      }],
+      config: { 
+        responseMimeType: "application/json" 
+      }
     });
 
     return response.text ? JSON.parse(response.text) : null;
@@ -34,15 +39,20 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
   if (!API_KEY || goals.length === 0) return [];
 
   const prompt = `
-    Sugira 3 investimentos para: ${goals.map(g => g.title).join(", ")}. Saldo: R$ ${balance}.
+    Sugira 3 investimentos conservadores para: ${goals.map(g => g.title).join(", ")}. Saldo: R$ ${balance}.
     Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]
   `;
 
   try {
     const response = await client.models.generateContent({
       model: MODEL_NAME,
-      contents: [{ parts: [{ text: prompt }] }],
-      config: { responseMimeType: "application/json" }
+      contents: [{ 
+        role: 'user', 
+        parts: [{ text: prompt }] 
+      }],
+      config: { 
+        responseMimeType: "application/json" 
+      }
     });
 
     return response.text ? JSON.parse(response.text) : [];
@@ -59,6 +69,7 @@ export async function chatFinancialAdvisor(message: string, context: string) {
     const response = await client.models.generateContent({
       model: MODEL_NAME,
       contents: [{ 
+        role: 'user',
         parts: [{ text: `Contexto: ${context}. Você é um consultor financeiro brasileiro. Pergunta: ${message}` }] 
       }]
     });

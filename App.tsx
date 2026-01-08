@@ -74,7 +74,6 @@ const App: React.FC = () => {
   }, [sortedByDeadline]);
 
   const fetchData = async (userId: string) => {
-    // Usamos maybeSingle para evitar erro 400/406 se o perfil não existir ainda
     const { data: profileData } = await supabase
       .from('profiles')
       .select('id, first_name, last_name, avatar_url')
@@ -306,7 +305,7 @@ const App: React.FC = () => {
               <div className="lg:col-span-8 space-y-8">
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                   <h3 className="font-bold mb-6 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-emerald-600"/> Progresso das Metas</h3>
-                  <div className="h-[300px] w-full">
+                  <div className="h-[300px] min-h-[300px] w-full relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={top3ProgressData} layout="vertical" margin={{ left: 10, right: 30 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
@@ -342,7 +341,7 @@ const App: React.FC = () => {
               <div className="lg:col-span-4">
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                   <h3 className="font-bold mb-4 flex items-center gap-2"><PieChartIcon className="w-5 h-5 text-emerald-600"/> Divisão de Gastos</h3>
-                  <div className="h-[300px] w-full">
+                  <div className="h-[300px] min-h-[300px] w-full relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -389,6 +388,7 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {/* Outras tabs permanecem iguais */}
         {activeTab === 'goals' && (
           <div className="space-y-6 animate-in slide-in-from-right duration-500">
             <div className="flex justify-between items-center">
@@ -419,6 +419,7 @@ const App: React.FC = () => {
         )}
       </main>
 
+      {/* Modais permanecem iguais */}
       <PixModal isOpen={isPixOpen} onClose={() => setIsPixOpen(false)} goalTitle={selectedGoal?.title || ''} onConfirm={confirmDeposit} />
       <AddGoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onAdd={handleAddGoal} />
       <AddTransactionModal isOpen={isTransactionModalOpen} onClose={() => setIsTransactionModalOpen(false)} onAdd={handleAddTransaction} />
