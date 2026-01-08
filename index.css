@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @keyframes zoom-in-95 {
   from { opacity: 0; transform: scale(0.95); }
