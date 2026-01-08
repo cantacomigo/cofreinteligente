@@ -1,9 +1,13 @@
 "use client";
 
 import React from 'react';
-import { Wallet, Sparkles, TrendingUp, ShieldCheck } from 'lucide-react';
+import { Wallet, Sparkles, TrendingUp, ShieldCheck, ArrowRight } from 'lucide-react';
 
 const Hero = () => {
+  const scrollToAuth = () => {
+    document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section className="relative pt-20 pb-16 lg:pt-32 lg:pb-24 overflow-hidden">
       <div className="container mx-auto px-4 relative z-10">
@@ -19,12 +23,28 @@ const Hero = () => {
             <p className="text-xl text-slate-500 mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0">
               O Cofre Inteligente usa IA de última geração para rastrear suas metas, prever economias e alertar sobre riscos financeiros antes mesmo deles acontecerem.
             </p>
-            <div className="flex flex-wrap justify-center lg:justify-start gap-4">
-              <div className="flex items-center gap-2 text-slate-600 font-bold">
+            
+            <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 mb-8">
+              <button 
+                onClick={scrollToAuth}
+                className="px-8 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 hover:bg-emerald-700 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+              >
+                Começar Agora <ArrowRight className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                className="px-8 py-4 bg-white text-slate-900 border-2 border-slate-100 font-black rounded-2xl hover:bg-slate-50 transition-all"
+              >
+                Ver Recursos
+              </button>
+            </div>
+
+            <div className="flex flex-wrap justify-center lg:justify-start gap-6">
+              <div className="flex items-center gap-2 text-slate-600 font-bold text-sm">
                 <ShieldCheck className="w-5 h-5 text-emerald-500" />
                 Segurança Bancária
               </div>
-              <div className="flex items-center gap-2 text-slate-600 font-bold">
+              <div className="flex items-center gap-2 text-slate-600 font-bold text-sm">
                 <TrendingUp className="w-5 h-5 text-emerald-500" />
                 Rendimentos Reais
               </div>
@@ -32,6 +52,7 @@ const Hero = () => {
           </div>
           
           <div className="flex-1 relative">
+            {/* Simulação de Preview do App */}
             <div className="relative z-10 bg-white p-8 rounded-[48px] shadow-2xl border border-slate-100 transform rotate-2 hover:rotate-0 transition-transform duration-500">
               <div className="flex justify-between items-center mb-8">
                 <div className="bg-slate-900 p-4 rounded-3xl text-white">

@@ -1,0 +1,21 @@
+{
+  "name": "Cofre Inteligente",
+  "short_name": "Cofre",
+  "description": "Finanças turbinadas por IA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#059669",
+  "icons": [
+    {
+      "src": "https://ovxsgfcdzknpzxwrjjhq.supabase.co/storage/v1/object/public/avatars/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://ovxsgfcdzknpzxwrjjhq.supabase.co/storage/v1/object/public/avatars/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
