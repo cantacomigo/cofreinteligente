@@ -161,7 +161,7 @@ const App: React.FC = () => {
     if (data) fetchData(user.id);
   };
 
-  const handleAddTransaction = async (newTx: Omit<Transaction, 'id' | 'createdAt'>) => {
+  const handleAddTransaction = async (newTx: Omit<Transaction, 'id' | 'createdAt'> & { createdAt: string }) => {
     if (!user) return;
     const { data } = await supabase.from('transactions').insert({
       user_id: user.id,
@@ -169,7 +169,8 @@ const App: React.FC = () => {
       type: newTx.type,
       category: newTx.category,
       description: newTx.description,
-      method: newTx.method
+      method: newTx.method,
+      created_at: newTx.createdAt
     }).select().single();
     if (data) fetchData(user.id);
   };

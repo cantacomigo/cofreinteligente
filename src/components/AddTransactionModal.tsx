@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from 'react';
-import { X, ArrowUpCircle, ArrowDownCircle, DollarSign } from 'lucide-react';
+import { X, ArrowUpCircle, ArrowDownCircle, DollarSign, Calendar } from 'lucide-react';
 import { FINANCE_CATEGORIES } from '../constants.tsx';
 import { Transaction } from '../types.ts';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => void;
+  onAdd: (transaction: Omit<Transaction, 'id' | 'createdAt'> & { createdAt: string }) => void;
 }
 
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onAdd }) => {
@@ -17,7 +17,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
     type: 'expense' as Transaction['type'],
     category: 'shopping',
     description: '',
-    method: 'manual' as Transaction['method']
+    method: 'manual' as Transaction['method'],
+    date: new Date().toISOString().split('T')[0] // Data de hoje como padrão
   });
 
   if (!isOpen) return null;
@@ -29,7 +30,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
       type: formData.type,
       category: formData.category,
       description: formData.description,
-      method: formData.method
+      method: formData.method,
+      createdAt: new Date(formData.date).toISOString()
     });
     onClose();
   };
@@ -67,16 +69,31 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
             </button>
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Valor (R$)</label>
-            <input
-              required
-              type="number"
-              placeholder="0,00"
-              className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all text-2xl font-black text-center"
-              value={formData.amount}
-              onChange={e => setFormData({ ...formData, amount: e.target.value })}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Valor (R$)</label>
+              <input
+                required
+                type="number"
+                placeholder="0,00"
+                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all text-xl font-black text-center"
+                value={formData.amount}
+                onChange={e => setFormData({ ...formData, amount: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Data Real</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  required
+                  type="date"
+                  className="w-full pl-9 pr-3 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-500 outline-none transition-all text-sm font-bold"
+                  value={formData.date}
+                  onChange={e => setFormData({ ...formData, date: e.target.value })}
+                />
+              </div>
+            </div>
           </div>
 
           <div>
@@ -105,7 +122,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
 
           <button
             type="submit"
-            className={`w-full ${formData.type === 'income' ? 'bg-emerald-600' : 'bg-rose-600'} text-white font-bold py-4 rounded-2xl transition-all shadow-lg mt-4`}
+            className={`w-full ${formData.type === 'income' ? 'bg-emerald-600' : 'bg-rose-600'} text-white font-bold py-4 rounded-2xl transition-all shadow-lg mt-4 hover:brightness-110 active:scale-[0.98]`}
           >
             Confirmar Registro
           </button>
