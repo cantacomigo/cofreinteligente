@@ -2,8 +2,8 @@ import { supabase } from "../integrations/supabase/client";
 import { Goal, Transaction } from "../types.ts";
 
 /**
- * Utilitário para chamar a Edge Function centralizada de IA.
- * O SDK do Supabase anexa automaticamente o token JWT se o usuário estiver autenticado.
+ * Invocação da Edge Function 'gemini'.
+ * O SDK gerencia automaticamente a URL e o Token JWT do usuário logado.
  */
 const invokeGemini = async (action: string, payload: any) => {
   try {
@@ -12,15 +12,12 @@ const invokeGemini = async (action: string, payload: any) => {
     });
     
     if (error) {
-      // Se houver erro de autorização, tentamos pegar a sessão novamente
-      if (error.status === 401) {
-        console.warn("[Cofre IA] Erro 401. Verifique se o usuário está logado.");
-      }
-      throw error;
+      console.error(`[IA] Erro na ação ${action}:`, error);
+      return null;
     }
     return data;
   } catch (err) {
-    console.error(`[Cofre IA] Erro em ${action}:`, err);
+    console.error(`[IA] Falha na comunicação com a Edge Function:`, err);
     return null;
   }
 };
