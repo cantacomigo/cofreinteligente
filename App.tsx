@@ -166,12 +166,18 @@ const App: React.FC = () => {
 
   const confirmDeposit = async (amount: number) => {
     if (!selectedGoal || !user) return;
-    await supabase.from('transactions').insert({ 
-      user_id: user.id, goal_id: selectedGoal.id, amount, 
-      type: 'deposit', category: selectedGoal.category, method: 'pix' 
+    
+    // Usando a função RPC segura para garantir que o saldo seja atualizado no backend
+    const { error } = await supabase.rpc('deposit_to_goal', {
+      goal_id_param: selectedGoal.id,
+      amount_param: amount,
     });
-    const newAmount = selectedGoal.currentAmount + amount;
-    await supabase.from('goals').update({ current_amount: newAmount }).eq('id', selectedGoal.id);
+
+    if (error) {
+      console.error('Erro ao depositar via RPC:', error);
+      // Aqui você pode adicionar um toast de erro
+    }
+    
     fetchData(user.id);
   };
 
