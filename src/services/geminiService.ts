@@ -63,7 +63,7 @@ export async function chatFinancialAdvisor(message: string, context: string) {
   if (!genAI) return "Consultoria indisponível.";
   try {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
-    const fullPrompt = `Consultor financeiro. Contexto: ${context}. Pergunta: ${message}`;
+    const fullPrompt = `Você é o consultor do Cofre Inteligente. Contexto de metas: ${context}. Responda de forma curta e amigável. Pergunta: ${message}`;
     const result = await model.generateContent(fullPrompt);
     return result.response.text();
   } catch (error) { return "Erro no consultor."; }
@@ -76,7 +76,7 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
       model: MODEL_NAME,
       generationConfig: { responseMimeType: "application/json" }
     });
-    const prompt = `Sugira 3 investimentos para metas: ${goals.map(g => g.title).join(", ")}. Saldo: R$ ${balance}. Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`;
+    const prompt = `Sugira 3 investimentos brasileiros reais para metas: ${goals.map(g => g.title).join(", ")}. Saldo: R$ ${balance}. Considere CDI atual (~13.25%). Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`;
     const result = await model.generateContent(prompt);
     return JSON.parse(result.response.text());
   } catch (error) { return []; }
