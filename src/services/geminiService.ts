@@ -1,31 +1,11 @@
-import { GoogleGenAI, getGenerativeModel } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { Goal } from "../types.ts";
 
 // Inicialização correta com objeto de opções para @google/genai
-const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 const MODEL_NAME = "gemini-1.5-flash";
 
 export async function getFinancialInsight(goal: Goal, userBalance: number) {
-  // getGenerativeModel é uma função standalone neste SDK
-  const model = getGenerativeModel(genAI, {
-    model: MODEL_NAME,
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "object" as any,
-        properties: {
-          analysis: { type: "string" as any },
-          monthlySuggestion: { type: "number" as any },
-          actionSteps: {
-            type: "array" as any,
-            items: { type: "string" as any }
-          }
-        },
-        required: ["analysis", "monthlySuggestion", "actionSteps"]
-      },
-    },
-  });
-
   const prompt = `
     Analise esta meta financeira:
     Título: ${goal.title}
@@ -38,10 +18,29 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    return JSON.parse(text);
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            analysis: { type: Type.STRING },
+            monthlySuggestion: { type: Type.NUMBER },
+            actionSteps: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            }
+          },
+          required: ["analysis", "monthlySuggestion", "actionSteps"]
+        }
+      }
+    });
+
+    const jsonStr = response.text?.trim();
+    if (!jsonStr) return null;
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error("[geminiService] Insight Error:", error);
     return null;
@@ -49,26 +48,6 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
 }
 
 export async function getInvestmentRecommendations(goals: Goal[], balance: number) {
-  const model = getGenerativeModel(genAI, {
-    model: MODEL_NAME,
-    generationConfig: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "array" as any,
-        items: {
-          type: "object" as any,
-          properties: {
-            product: { type: "string" as any },
-            yield: { type: "string" as any },
-            liquidity: { type: "string" as any },
-            reasoning: { type: "string" as any }
-          },
-          required: ["product", "yield", "liquidity", "reasoning"]
-        }
-      },
-    },
-  });
-
   const prompt = `
     Sugira 3 investimentos para estas metas: ${goals.map(g => g.title).join(", ")}. 
     Saldo atual investido: R$ ${balance}.
@@ -76,10 +55,29 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    return JSON.parse(text);
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              product: { type: Type.STRING },
+              yield: { type: Type.STRING },
+              liquidity: { type: Type.STRING },
+              reasoning: { type: Type.STRING }
+            },
+            required: ["product", "yield", "liquidity", "reasoning"]
+          }
+        }
+      }
+    });
+
+    const jsonStr = response.text?.trim();
+    return jsonStr ? JSON.parse(jsonStr) : [];
   } catch (error) {
     console.error("[geminiService] Recs Error:", error);
     return [];
@@ -87,20 +85,19 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
 }
 
 export async function chatFinancialAdvisor(message: string, context: string) {
-  const model = getGenerativeModel(genAI, { model: MODEL_NAME });
-  
-  const chat = model.startChat({
-    history: [],
-    generationConfig: {
-      maxOutputTokens: 500,
-    },
-  });
-
   try {
-    const fullMessage = `Contexto do usuário: ${context}. Pergunta: ${message}`;
-    const result = await chat.sendMessage(fullMessage);
-    const response = await result.response;
-    return response.text();
+    const chat = ai.chats.create({
+      model: MODEL_NAME,
+      config: {
+        systemInstruction: "Você é o consultor do Cofre Inteligente. Seja educado e use termos de educação financeira brasileiros.",
+      }
+    });
+
+    const response = await chat.sendMessage({ 
+      message: `Contexto do usuário: ${context}. Pergunta: ${message}` 
+    });
+    
+    return response.text;
   } catch (error) {
     console.error("[geminiService] Chat Error:", error);
     return "Desculpe, tive um problema ao processar sua pergunta.";
