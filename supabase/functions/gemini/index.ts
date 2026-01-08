@@ -25,11 +25,19 @@ function sanitizeInput(input: any): string {
 
 // Função auxiliar para extrair JSON de uma string que pode conter ruído
 function extractJson(text) {
+  // 1. Tenta encontrar o bloco ```json
   const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
   if (jsonMatch && jsonMatch[1]) {
     return jsonMatch[1].trim();
   }
-  // Tenta limpar o texto se não houver bloco ```json
+  
+  // 2. Tenta encontrar o bloco ``` (sem especificar json)
+  const genericMatch = text.match(/```\s*([\s\S]*?)\s*```/);
+  if (genericMatch && genericMatch[1]) {
+    return genericMatch[1].trim();
+  }
+
+  // 3. Se não houver blocos, tenta limpar o texto de ruídos comuns
   const cleanText = text.replace(/```json|```/g, "").trim();
   return cleanText;
 }
@@ -129,7 +137,8 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error("[gemini] Internal Server Error:", error.message)
+    // Loga o erro interno completo
+    console.error("[gemini] Internal Server Error (Catch Block):", error.message, error);
     // Retorna um erro 500 com cabeçalhos CORS
     return new Response(JSON.stringify({ error: "Erro interno do servidor: " + error.message }), { status: 500, headers: corsHeaders })
   }
