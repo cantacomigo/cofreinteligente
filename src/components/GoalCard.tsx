@@ -73,7 +73,6 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onDeposit, onViewDetails, onD
           </div>
         </div>
 
-        {/* Campo de Descrição Editável */}
         <div className="mb-4 relative">
           {isEditingDesc ? (
             <div className="space-y-2 animate-in fade-in duration-200">
@@ -128,7 +127,6 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onDeposit, onViewDetails, onD
           </div>
         </div>
 
-        {/* Info de Rendimento Projetado */}
         {goal.currentAmount > 0 && (
           <div className="bg-slate-50 rounded-xl p-3 mb-6 border border-slate-100 group-hover:bg-emerald-50/50 group-hover:border-emerald-100 transition-colors duration-300">
             <div className="flex items-center gap-2 text-slate-500 text-[11px] font-bold uppercase mb-1">

@@ -18,7 +18,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
     category: 'shopping',
     description: '',
     method: 'manual' as Transaction['method'],
-    date: new Date().toISOString().split('T')[0] // Data de hoje como padrão
+    date: new Date().toISOString().split('T')[0]
   });
 
   if (!isOpen) return null;

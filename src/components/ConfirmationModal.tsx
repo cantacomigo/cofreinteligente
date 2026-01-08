@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 
@@ -34,13 +33,13 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               onClick={onCancel}
               className="py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-95"
             >
-              Cancel
+              Cancelar
             </button>
             <button 
               onClick={onConfirm}
               className="py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95"
             >
-              Add
+              Confirmar
             </button>
           </div>
         </div>
