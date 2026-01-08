@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { X, User, Camera, Save, Loader2, LogOut } from 'lucide-react';
+import { X, User, Camera, Save, Loader2, Upload, LogOut } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client.ts';
 
 interface ProfileSettingsModalProps {
@@ -29,8 +29,8 @@ const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOpen, onC
 
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      // Caminho agora usa o ID do usuário como pasta para segurança via RLS
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      // Caminho estruturado para a política de RLS: user_id/filename
       const filePath = `${profile.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
