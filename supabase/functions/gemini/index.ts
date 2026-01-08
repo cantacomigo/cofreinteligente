@@ -77,9 +77,10 @@ serve(async (req) => {
     }
 
     const apiKey = Deno.env.get("GEMINI_API_KEY")
-    if (!apiKey) {
-      console.error("[gemini] Configuration Error: GEMINI_API_KEY is missing.");
-      return new Response(JSON.stringify({ error: 'Erro de configuração' }), { status: 500, headers: corsHeaders })
+    // Verificação de segurança extra: se a chave estiver ausente ou vazia
+    if (!apiKey || apiKey.trim() === "") {
+      console.error("[gemini] Configuration Error: GEMINI_API_KEY is missing or empty.");
+      return new Response(JSON.stringify({ error: 'Erro de configuração: Chave Gemini ausente.' }), { status: 500, headers: corsHeaders })
     }
 
     console.log(`[gemini] Action received: ${action}`);

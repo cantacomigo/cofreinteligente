@@ -375,7 +375,7 @@ const App: React.FC = () => {
               <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm w-full md:w-auto">
                 <button onClick={() => setFilterType('all')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'all' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Tudo</button>
                 <button onClick={() => setFilterType('income')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'income' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Ganhos</button>
-                <button onClick={() => setFilterType('expense')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'expense' ? 'bg-rose-50 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Gastos</button>
+                <button onClick={() => setFilterType('expense')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'expense' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Gastos</button>
               </div>
               <button 
                 onClick={() => { setEditTransactionData(null); setIsTransactionModalOpen(true); }}
@@ -444,7 +444,7 @@ const App: React.FC = () => {
                   <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                     <div>
                       <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Extrato de Movimentações</h3>
-                      <p className="text-[10px] text-slate-400 font-medium">{filteredTransactions.length} transações encontradas</p>
+                      <p className="text-[10px] text-slate-400 font-medium">{filteredTransactions.length} transações encontrpadas</p>
                     </div>
                     <Filter className="w-4 h-4 text-slate-300" />
                   </div>
