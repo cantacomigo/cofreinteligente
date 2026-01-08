@@ -22,6 +22,8 @@ import GoalAnalysisModal from './src/components/GoalAnalysisModal.tsx';
 import BudgetTracker from './src/components/BudgetTracker.tsx';
 import SetBudgetModal from './src/components/SetBudgetModal.tsx';
 import InvestmentRecommendations from './src/components/InvestmentRecommendations.tsx';
+import FinancialHealthScore from './src/components/FinancialHealthScore.tsx';
+import SavingsChallenges from './src/components/SavingsChallenges.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
@@ -35,6 +37,7 @@ const App: React.FC = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
+  const [challenges, setChallenges] = useState<any[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const [isPixOpen, setIsPixOpen] = useState(false);
@@ -53,25 +56,29 @@ const App: React.FC = () => {
     return { income, expense, invested, balance };
   }, [transactions, goals]);
 
+  const financialScore = useMemo(() => {
+    if (goals.length === 0) return 50;
+    const progressAvg = goals.reduce((acc, g) => acc + (g.currentAmount / g.targetAmount), 0) / goals.length;
+    const expenseRatio = totals.income > 0 ? (totals.expense / totals.income) : 1;
+    
+    // Cálculo simplificado: Peso de 60% no progresso das metas e 40% no controle de gastos
+    const score = (progressAvg * 60) + ((1 - Math.min(expenseRatio, 1)) * 40);
+    return Math.round(score);
+  }, [goals, totals]);
+
   const budgetProgress = useMemo(() => {
     return budgets.map(b => {
       const spent = transactions
         .filter(t => t.type === 'expense' && t.category === b.category)
         .reduce((acc, t) => acc + t.amount, 0);
-      return {
-        category: b.category,
-        limit_amount: Number(b.limit_amount),
-        spent
-      };
+      return { category: b.category, limit_amount: Number(b.limit_amount), spent };
     });
   }, [budgets, transactions]);
 
   const categoryChartData = useMemo(() => {
     const expenses = transactions.filter(t => t.type === 'expense');
     const categories: Record<string, number> = {};
-    expenses.forEach(t => {
-      categories[t.category] = (categories[t.category] || 0) + t.amount;
-    });
+    expenses.forEach(t => { categories[t.category] = (categories[t.category] || 0) + t.amount; });
     return Object.entries(categories).map(([name, value]) => ({ name, value }));
   }, [transactions]);
 
@@ -90,19 +97,12 @@ const App: React.FC = () => {
 
   const fetchData = async (userId: string) => {
     try {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
-        .eq('id', userId)
-        .maybeSingle();
-
+      const { data: profileData } = await supabase.from('profiles').select('id, first_name, last_name, avatar_url').eq('id', userId).maybeSingle();
       if (profileData) {
         setProfile({
-          id: profileData.id,
-          email: user?.email || '',
+          id: profileData.id, email: user?.email || '',
           fullName: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || user?.email || 'Usuário',
-          avatarUrl: profileData.avatar_url || undefined,
-          totalBalance: 0,
+          avatarUrl: profileData.avatar_url || undefined, totalBalance: 0,
         });
       }
 
@@ -128,14 +128,13 @@ const App: React.FC = () => {
       const { data: budgetsData } = await supabase.from('budgets').select('*').eq('user_id', userId);
       if (budgetsData) setBudgets(budgetsData);
 
-    } catch (err) {
-      console.error("Erro ao buscar dados:", err);
-    }
+      const { data: challengesData } = await supabase.from('challenges').select('*').eq('user_id', userId).eq('status', 'active');
+      if (challengesData) setChallenges(challengesData);
+
+    } catch (err) { console.error("Erro ao buscar dados:", err); }
   };
 
-  useEffect(() => {
-    if (user) fetchData(user.id);
-  }, [user]);
+  useEffect(() => { if (user) fetchData(user.id); }, [user]);
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 text-emerald-600 animate-spin" /></div>;
   if (!session) return <Login />;
@@ -151,151 +150,98 @@ const App: React.FC = () => {
     fetchData(user.id);
   };
 
-  const handleAddGoal = async (newGoal: any) => {
+  const handleAddGoal = async (newGoal: any) => { if (!user) return; await supabase.from('goals').insert({ user_id: user.id, ...newGoal }); fetchData(user.id); };
+  const handleAddTransaction = async (newTx: any) => { if (!user) return; await supabase.from('transactions').insert({ user_id: user.id, ...newTx }); fetchData(user.id); };
+
+  const handleAddChallenge = async () => {
     if (!user) return;
-    await supabase.from('goals').insert({ user_id: user.id, ...newGoal });
-    fetchData(user.id);
+    const { error } = await supabase.from('challenges').insert({
+      user_id: user.id, title: "Sem Gastos Extras", description: "Fique 7 dias sem comprar itens supérfluos.", 
+      target_amount: 100, end_date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0], category: 'leisure'
+    });
+    if (!error) fetchData(user.id);
   };
 
-  const handleAddTransaction = async (newTx: any) => {
-    if (!user) return;
-    await supabase.from('transactions').insert({ user_id: user.id, ...newTx, amount: newTx.amount });
-    fetchData(user.id);
+  const handleUpdateChallenge = async (id: string, amount: number) => {
+    const challenge = challenges.find(c => c.id === id);
+    if (!challenge) return;
+    const newAmount = Number(challenge.current_amount) + amount;
+    const { error } = await supabase.from('challenges').update({ current_amount: newAmount }).eq('id', id);
+    if (!error) fetchData(user.id);
   };
 
   const handleSaveBudget = async (category: string, limit_amount: number) => {
     if (!user) return;
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
     const { error } = await supabase.from('budgets').upsert({
-      user_id: user.id, category, limit_amount, month: currentMonth, year: currentYear
+      user_id: user.id, category, limit_amount, month: new Date().getMonth() + 1, year: new Date().getFullYear()
     }, { onConflict: 'user_id, category, month, year' });
     if (!error) fetchData(user.id);
   };
 
-  const handleDeleteGoal = async (goal: Goal) => {
-    if (!confirm('Deseja realmente excluir esta meta?')) return;
-    await supabase.from('goals').delete().eq('id', goal.id);
-    fetchData(user.id);
-  };
-
+  const handleDeleteGoal = async (goal: Goal) => { if (!confirm('Deseja realmente excluir esta meta?')) return; await supabase.from('goals').delete().eq('id', goal.id); fetchData(user.id); };
   const handleLogout = () => supabase.auth.signOut();
 
-  const navItemClass = (tab: Tab) => `
-    w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all
-    ${activeTab === tab ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-slate-50'}
-  `;
+  const navItemClass = (tab: Tab) => `w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === tab ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-slate-50'}`;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col fixed md:sticky top-0 h-auto md:h-screen z-40 shadow-sm">
-        <div className="p-6 flex items-center gap-3">
-          <div className="bg-emerald-600 p-2 rounded-xl"><Wallet className="w-6 h-6 text-white" /></div>
-          <h1 className="text-xl font-bold text-slate-900">Cofre Inteligente</h1>
-        </div>
+        <div className="p-6 flex items-center gap-3"><div className="bg-emerald-600 p-2 rounded-xl"><Wallet className="w-6 h-6 text-white" /></div><h1 className="text-xl font-bold text-slate-900">Cofre Inteligente</h1></div>
         <nav className="flex-1 px-4 space-y-1 py-4">
           <button onClick={() => setActiveTab('dashboard')} className={navItemClass('dashboard')}><LayoutDashboard className="w-5 h-5" /> Painel</button>
           <button onClick={() => setActiveTab('finance')} className={navItemClass('finance')}><DollarSign className="w-5 h-5" /> Meu Dinheiro</button>
           <button onClick={() => setActiveTab('goals')} className={navItemClass('goals')}><Target className="w-5 h-5" /> Metas</button>
         </nav>
-        <div className="p-4 border-t border-slate-100">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-rose-500 hover:bg-rose-50 transition-all"><LogOut className="w-5 h-5" /> Sair</button>
-        </div>
+        <div className="p-4 border-t border-slate-100"><button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-rose-500 hover:bg-rose-50 transition-all"><LogOut className="w-5 h-5" /> Sair</button></div>
       </aside>
 
       <main className="flex-1 p-4 md:p-8 pt-24 md:pt-8 max-w-7xl mx-auto w-full">
         {activeTab === 'dashboard' && (
           <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-3 mb-4"><div className="bg-emerald-100 p-2 rounded-lg text-emerald-600"><ArrowUpCircle className="w-5 h-5" /></div><span className="font-bold text-slate-500 text-sm">Ganhos</span></div>
-                <h3 className="text-2xl font-black">R$ {totals.income.toLocaleString('pt-BR')}</h3>
-              </div>
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-3 mb-4"><div className="bg-rose-100 p-2 rounded-lg text-rose-600"><ArrowDownCircle className="w-5 h-5" /></div><span className="font-bold text-slate-500 text-sm">Gastos</span></div>
-                <h3 className="text-2xl font-black">R$ {totals.expense.toLocaleString('pt-BR')}</h3>
-              </div>
-              <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl">
-                <div className="flex items-center gap-3 mb-4 text-slate-400"><div className="bg-slate-800 p-2 rounded-lg"><Wallet className="w-5 h-5" /></div><span className="font-bold text-sm">Saldo</span></div>
-                <h3 className="text-2xl font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><div className="flex items-center gap-3 mb-4"><div className="bg-emerald-100 p-2 rounded-lg text-emerald-600"><ArrowUpCircle className="w-5 h-5" /></div><span className="font-bold text-slate-500 text-sm">Ganhos</span></div><h3 className="text-2xl font-black">R$ {totals.income.toLocaleString('pt-BR')}</h3></div>
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><div className="flex items-center gap-3 mb-4"><div className="bg-rose-100 p-2 rounded-lg text-rose-600"><ArrowDownCircle className="w-5 h-5" /></div><span className="font-bold text-slate-500 text-sm">Gastos</span></div><h3 className="text-2xl font-black">R$ {totals.expense.toLocaleString('pt-BR')}</h3></div>
+              <div className="bg-slate-900 p-6 rounded-3xl text-white shadow-xl"><div className="flex items-center gap-3 mb-4 text-slate-400"><div className="bg-slate-800 p-2 rounded-lg"><Wallet className="w-5 h-5" /></div><span className="font-bold text-sm">Saldo</span></div><h3 className="text-2xl font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3></div>
+              <FinancialHealthScore score={financialScore} />
             </div>
+            
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-8 space-y-8">
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[350px]">
                   <h3 className="font-bold mb-6 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-emerald-600"/> Progresso das Metas</h3>
-                  <div className="h-[300px] w-full relative">
-                    <ResponsiveContainer width="100%" height={300}>
+                  <div className="h-[250px] w-full relative">
+                    <ResponsiveContainer width="100%" height={250}>
                       <BarChart data={top3ProgressData} layout="vertical" margin={{ left: 10, right: 30 }}>
                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                        <XAxis type="number" hide domain={[0, 100]} />
-                        <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 10, fontWeight: 600}} axisLine={false} />
-                        <RechartsTooltip cursor={{fill: '#f8fafc'}} />
-                        <Bar dataKey="progresso" fill="#10b981" radius={[0, 10, 10, 0]} barSize={20} />
+                        <XAxis type="number" hide domain={[0, 100]} /><YAxis dataKey="name" type="category" width={80} tick={{fontSize: 10, fontWeight: 600}} axisLine={false} /><RechartsTooltip cursor={{fill: '#f8fafc'}} /><Bar dataKey="progresso" fill="#10b981" radius={[0, 10, 10, 0]} barSize={20} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
                 <InvestmentRecommendations goals={goals} balance={totals.balance} />
               </div>
-              <div className="lg:col-span-4"><AIAdvisor activeGoals={goals} /></div>
+              <div className="lg:col-span-4 space-y-8">
+                <AIAdvisor activeGoals={goals} />
+                <SavingsChallenges challenges={challenges} onAddChallenge={handleAddChallenge} onUpdateProgress={handleUpdateChallenge} />
+              </div>
             </div>
           </div>
         )}
 
         {activeTab === 'finance' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-black text-slate-800">Meu Dinheiro</h2>
-              <button onClick={() => setIsTransactionModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95">
-                <PlusCircle className="w-5 h-5" /> Registrar Valor
-              </button>
-            </div>
+            <div className="flex justify-between items-center"><h2 className="text-2xl font-black text-slate-800">Meu Dinheiro</h2><button onClick={() => setIsTransactionModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95"><PlusCircle className="w-5 h-5" /> Registrar Valor</button></div>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-4 space-y-6">
-                <BudgetTracker budgets={budgetProgress} onSetBudget={() => setIsBudgetModalOpen(true)} />
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                  <h3 className="font-bold mb-4 flex items-center gap-2"><PieChartIcon className="w-5 h-5 text-emerald-600"/> Divisão de Gastos</h3>
-                  <div className="h-[250px] w-full relative">
-                    <ResponsiveContainer width="100%" height={250}>
-                      <PieChart><Pie data={categoryChartData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">{categoryChartData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><RechartsTooltip /><Legend iconType="circle" /></PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
-              <div className="lg:col-span-8">
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase">
-                      <tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4 text-right">Valor</th></tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {transactions.map(t => (
-                        <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-4 text-sm text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
-                          <td className="px-6 py-4 capitalize font-bold text-slate-700">{t.category}</td>
-                          <td className={`px-6 py-4 text-right font-black ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <div className="lg:col-span-4 space-y-6"><BudgetTracker budgets={budgetProgress} onSetBudget={() => setIsBudgetModalOpen(true)} /><div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><h3 className="font-bold mb-4 flex items-center gap-2"><PieChartIcon className="w-5 h-5 text-emerald-600"/> Divisão de Gastos</h3><div className="h-[250px] w-full relative"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={categoryChartData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">{categoryChartData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}</Pie><RechartsTooltip /><Legend iconType="circle" /></PieChart></ResponsiveContainer></div></div></div>
+              <div className="lg:col-span-8"><div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"><table className="w-full text-left"><thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase"><tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4 text-right">Valor</th></tr></thead><tbody className="divide-y divide-slate-100">{transactions.map(t => (<tr key={t.id} className="hover:bg-slate-50 transition-colors"><td className="px-6 py-4 text-sm text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td><td className="px-6 py-4 capitalize font-bold text-slate-700">{t.category}</td><td className={`px-6 py-4 text-right font-black ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>{t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}</td></tr>))}</tbody></table></div></div>
             </div>
           </div>
         )}
 
         {activeTab === 'goals' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-black text-slate-800">Minhas Metas</h2>
-              <button onClick={() => setIsGoalModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95"><Plus className="w-5 h-5" /> Nova Meta</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {goals.map(g => (<GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} />))}
-            </div>
+            <div className="flex justify-between items-center"><h2 className="text-2xl font-black text-slate-800">Minhas Metas</h2><button onClick={() => setIsGoalModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95"><Plus className="w-5 h-5" /> Nova Meta</button></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{goals.map(g => (<GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} />))}</div>
           </div>
         )}
       </main>
