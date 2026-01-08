@@ -7,7 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Função auxiliar para decodificar o User ID do JWT sem consultar o banco de dados de sessões
 function getUserIdFromToken(authHeader: string) {
   try {
     const token = authHeader.replace('Bearer ', '');
@@ -18,7 +17,7 @@ function getUserIdFromToken(authHeader: string) {
     }).join(''));
 
     const payload = JSON.parse(jsonPayload);
-    return payload.sub; // O 'sub' é o UUID do usuário no Supabase
+    return payload.sub;
   } catch (e) {
     console.error("[gemini] Falha ao decodificar token:", e);
     return null;
@@ -35,7 +34,6 @@ serve(async (req) => {
     const userId = authHeader ? getUserIdFromToken(authHeader) : null;
 
     if (!userId) {
-      console.error("[gemini] Erro: Usuário não identificado no token");
       return new Response(JSON.stringify({ error: 'Não autorizado' }), { status: 401, headers: corsHeaders })
     }
 
@@ -45,33 +43,35 @@ serve(async (req) => {
     }
 
     const { action, payload } = await req.json()
-    console.log(`[gemini] Ação: ${action} | Usuário: ${userId}`);
+    console.log(`[gemini] Usuário: ${userId} | Ação: ${action}`);
 
     const genAI = new GoogleGenerativeAI(apiKey)
+    
+    // Usando gemini-1.5-flash que é o modelo mais estável e rápido no momento
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: "Você é um consultor financeiro brasileiro. Responda sempre em Português e retorne JSON puro quando solicitado."
+      model: "gemini-1.5-flash"
     })
 
-    let prompt = ""
+    let prompt = `Você é um consultor financeiro brasileiro de alta performance. Responda sempre em Português do Brasil.\n\n`
+    
     switch (action) {
       case 'getFinancialInsight':
-        prompt = `Analise a meta ${payload.goal.title}. Objetivo: R$ ${payload.goal.targetAmount}. Atual: R$ ${payload.goal.currentAmount}. Retorne JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["..."]}`
+        prompt += `Analise a meta "${payload.goal.title}". Valor Alvo: R$ ${payload.goal.targetAmount}. Valor Atual: R$ ${payload.goal.currentAmount}. Responda estritamente em JSON com este formato: {"analysis": "sua análise aqui", "monthlySuggestion": valor_numerico, "actionSteps": ["passo 1", "passo 2"]}`
         break;
       case 'detectSubscriptions':
-        prompt = `Liste assinaturas recorrentes nestas transações: ${JSON.stringify(payload.transactions)}. Retorne JSON: [{"name": "...", "amount": 0, "frequency": "...", "tip": "..."}]`
+        prompt += `Identifique gastos recorrentes (assinaturas) nesta lista de transações: ${JSON.stringify(payload.transactions)}. Responda estritamente em JSON: [{"name": "nome", "amount": valor, "frequency": "mensal/anual", "tip": "dica de economia"}]`
         break;
       case 'chatFinancialAdvisor':
-        prompt = `Metas: ${payload.context}. Pergunta: ${payload.message}`
+        prompt += `Contexto das metas do usuário: ${payload.context}. Pergunta do usuário: ${payload.message}. Responda de forma direta e motivadora.`
         break;
       case 'getInvestmentRecommendations':
-        prompt = `Sugira 3 investimentos para saldo R$ ${payload.balance} e metas ${JSON.stringify(payload.goals)}. Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`
+        prompt += `Baseado no saldo de R$ ${payload.balance} e nas metas ${JSON.stringify(payload.goals)}, sugira 3 investimentos conservadores/moderados. Responda estritamente em JSON: [{"product": "nome", "yield": "rentabilidade esperada", "liquidity": "liquidez", "reasoning": "por que investir aqui"}]`
         break;
       case 'categorizeTransaction':
-        prompt = `Dê uma categoria curta para '${payload.description}' (${payload.type}). Retorne JSON: {"category": "..."}`
+        prompt += `Qual a melhor categoria financeira curta para a descrição "${payload.description}" do tipo "${payload.type}"? Responda estritamente em JSON: {"category": "categoria"}`
         break;
       case 'getCashFlowPrediction':
-        prompt = `Previsão 30 dias. Saldo R$ ${payload.balance}. Transações: ${JSON.stringify(payload.transactions)}. Retorne JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`
+        prompt += `Faça uma previsão para os próximos 30 dias. Saldo atual: R$ ${payload.balance}. Histórico: ${JSON.stringify(payload.transactions)}. Responda estritamente em JSON: {"predictedBalance": valor, "alert": "mensagem curta de alerta", "riskLevel": "low|medium|high"}`
         break;
       default:
         return new Response(JSON.stringify({ error: 'Ação inválida' }), { status: 400, headers: corsHeaders })
@@ -79,17 +79,20 @@ serve(async (req) => {
 
     const result = await model.generateContent(prompt)
     const responseText = result.response.text()
+    
+    // Limpeza de blocos de código JSON se a IA retornar markdown
     const cleanJson = responseText.replace(/```json|```/g, "").trim();
     
     try {
       const parsed = JSON.parse(cleanJson);
       return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     } catch {
+      // Se não for JSON, retorna como texto plano
       return new Response(JSON.stringify({ text: responseText }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
   } catch (error) {
-    console.error("[gemini] Erro:", error.message)
-    return new Response(JSON.stringify({ error: 'Erro interno' }), { status: 500, headers: corsHeaders })
+    console.error("[gemini] Erro crítico:", error.message)
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders })
   }
 })
