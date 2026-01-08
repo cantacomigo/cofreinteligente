@@ -16,72 +16,71 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      console.error("[gemini] Falta cabeçalho Authorization")
+      console.error("[gemini] Erro: Cabeçalho Authorization ausente");
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
     }
 
     const token = authHeader.replace('Bearer ', '')
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
 
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+
+    // Validar o token para garantir que o usuário é legítimo
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
     
     if (userError || !user) {
-      console.error("[gemini] Usuário inválido:", userError?.message)
-      return new Response(JSON.stringify({ error: 'Invalid Token' }), { status: 401, headers: corsHeaders })
+      console.error("[gemini] Erro: Token inválido");
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders })
     }
 
     const apiKey = Deno.env.get("GEMINI_API_KEY")
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API Key missing' }), { status: 500, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: 'GEMINI_API_KEY missing' }), { status: 500, headers: corsHeaders })
     }
 
     const { action, payload } = await req.json()
-    console.log(`[gemini] Ação: ${action}`)
-
     const genAI = new GoogleGenerativeAI(apiKey)
-    // Alterado para 'gemini-1.5-flash' explicitamente (pode variar conforme a versão da API do Google)
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
-      systemInstruction: "Você é um consultor financeiro. Responda APENAS JSON puro se solicitado, sem blocos de código markdown."
+      systemInstruction: "Você é um consultor financeiro. Responda estritamente em JSON puro sem blocos markdown quando solicitado."
     })
 
     let prompt = ""
     switch (action) {
       case 'getFinancialInsight':
-        prompt = `Analise a meta ${payload.goal.title} (Faltam R$ ${payload.goal.targetAmount - payload.goal.currentAmount}). Saldo: R$ ${payload.userBalance}. Retorne JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["..."]}`
+        prompt = `Analise a meta ${payload.goal.title} (Faltam R$ ${payload.goal.targetAmount - payload.goal.currentAmount}). Saldo: R$ ${payload.userBalance}. JSON: {"analysis": "...", "monthlySuggestion": 0, "actionSteps": ["..."]}`
         break;
       case 'detectSubscriptions':
-        prompt = `Identifique assinaturas recorrentes: ${JSON.stringify(payload.transactions)}. Retorne JSON: [{"name": "...", "amount": 0, "frequency": "...", "tip": "..."}]`
+        prompt = `Identifique assinaturas recorrentes nas transações: ${JSON.stringify(payload.transactions)}. JSON: [{"name": "...", "amount": 0, "frequency": "...", "tip": "..."}]`
         break;
       case 'chatFinancialAdvisor':
         prompt = `Contexto Metas: ${payload.context}. Pergunta: ${payload.message}`
         break;
       case 'getInvestmentRecommendations':
-        prompt = `Sugira 3 investimentos para saldo R$ ${payload.balance} e metas ${payload.goals.map(g => g.title).join(", ")}. Retorne JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`
+        prompt = `Sugira 3 investimentos para saldo R$ ${payload.balance} e metas ${JSON.stringify(payload.goals)}. JSON: [{"product": "...", "yield": "...", "liquidity": "...", "reasoning": "..."}]`
         break;
       case 'categorizeTransaction':
-        prompt = `Categorize: ${payload.description} (${payload.type}). Retorne JSON: {"category": "..."}`
+        prompt = `Categorize: ${payload.description} (${payload.type}). JSON: {"category": "..."}`
         break;
       case 'getCashFlowPrediction':
-        prompt = `Preveja saldo em 30 dias. Atual: R$ ${payload.balance}. Histórico: ${JSON.stringify(payload.transactions)}. Retorne JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`
+        prompt = `Preveja saldo em 30 dias. Atual: R$ ${payload.balance}. Histórico: ${JSON.stringify(payload.transactions)}. JSON: {"predictedBalance": 0, "alert": "...", "riskLevel": "low|medium|high"}`
         break;
       default:
         return new Response(JSON.stringify({ error: 'Action not found' }), { status: 400, headers: corsHeaders })
     }
 
     const result = await model.generateContent(prompt)
-    const text = result.response.text()
+    const responseText = result.response.text()
+    
+    // Limpar markdown caso a IA ignore a instrução
+    const cleanJson = responseText.replace(/```json|```/g, "").trim();
     
     try {
-      const cleaned = text.replace(/```json|```/g, "").trim()
-      const json = JSON.parse(cleaned)
-      return new Response(JSON.stringify(json), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+      const parsed = JSON.parse(cleanJson);
+      return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     } catch {
-      return new Response(JSON.stringify({ text }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+      return new Response(JSON.stringify({ text: responseText }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
     }
 
   } catch (error) {

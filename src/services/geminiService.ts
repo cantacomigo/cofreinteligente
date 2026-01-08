@@ -3,21 +3,31 @@ import { Goal, Transaction } from "../types.ts";
 
 /**
  * Invocação da Edge Function 'gemini'.
- * O SDK gerencia automaticamente a URL e o Token JWT do usuário logado.
+ * Pegamos o token manualmente da sessão para garantir a autenticação.
  */
 const invokeGemini = async (action: string, payload: any) => {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.access_token) {
+      console.warn(`[IA] Ação ${action} ignorada: Usuário não autenticado.`);
+      return null;
+    }
+
     const { data, error } = await supabase.functions.invoke('gemini', {
-      body: { action, payload }
+      body: { action, payload },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
+      }
     });
     
     if (error) {
-      console.error(`[IA] Erro na ação ${action}:`, error);
+      console.error(`[IA] Erro na resposta da função (${action}):`, error);
       return null;
     }
     return data;
   } catch (err) {
-    console.error(`[IA] Falha na comunicação com a Edge Function:`, err);
+    console.error(`[IA] Falha catastrófica em ${action}:`, err);
     return null;
   }
 };
