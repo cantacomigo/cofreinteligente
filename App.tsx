@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Wallet, Target, LayoutDashboard, 
   ArrowUpCircle, ArrowDownCircle, DollarSign, PlusCircle, LogOut, Loader2, PieChart as PieChartIcon,
-  BarChart3, Plus, Search, Filter, Settings, User
+  BarChart3, Plus, Search, Settings, User
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
@@ -57,7 +57,6 @@ const App: React.FC = () => {
     const expense = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
     const invested = goals.reduce((acc, g) => acc + g.currentAmount, 0);
     const balance = income - expense - invested;
-    
     return { income, expense, invested, balance };
   }, [transactions, goals]);
 
@@ -153,7 +152,7 @@ const App: React.FC = () => {
 
   useEffect(() => { if (user) fetchData(user.id); }, [user]);
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 text-emerald-600 animate-spin" /></div>;
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-8 h-8 text-emerald-600 animate-spin" /></div>;
   if (!session) return <Login />;
 
   const handleDeposit = (goal: Goal) => { setSelectedGoal(goal); setIsPixOpen(true); };
@@ -181,91 +180,91 @@ const App: React.FC = () => {
       month: new Date().getMonth() + 1,
       year: new Date().getFullYear()
     }, { onConflict: 'user_id, category, month, year' });
-    
     if (!error) fetchData(user.id);
   };
 
   const handleLogout = () => supabase.auth.signOut();
 
-  const navItemClass = (tab: Tab) => `w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === tab ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-slate-50'}`;
+  const navItemClass = (tab: Tab) => `w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-slate-50'}`;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col fixed md:sticky top-0 h-auto md:h-screen z-40 shadow-sm">
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-600 p-2 rounded-xl"><Wallet className="w-6 h-6 text-white" /></div>
-            <h1 className="text-xl font-bold text-slate-900">Cofre Inteligente</h1>
-          </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-sm">
+      <aside className="w-full md:w-56 bg-white border-r border-slate-200 flex flex-col fixed md:sticky top-0 h-auto md:h-screen z-40 shadow-sm">
+        <div className="p-4 flex items-center gap-2">
+          <div className="bg-emerald-600 p-1.5 rounded-lg"><Wallet className="w-5 h-5 text-white" /></div>
+          <h1 className="text-base font-bold text-slate-900 tracking-tight">Cofre Inteligente</h1>
         </div>
         
-        <div className="px-6 mb-4">
+        <div className="px-4 mb-2">
           <div 
             onClick={() => setIsProfileModalOpen(true)}
-            className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors group"
+            className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors group"
           >
-            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden">
-              {profile?.avatarUrl ? <img src={profile.avatarUrl} alt="Me" className="w-full h-full object-cover" /> : <User className="w-5 h-5 text-emerald-600" />}
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden border border-emerald-200">
+              {profile?.avatarUrl ? <img src={profile.avatarUrl} alt="Me" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-emerald-600" />}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-black text-slate-900 truncate">{profile?.fullName}</p>
-              <p className="text-[10px] text-slate-400 font-bold">Ver Perfil</p>
+              <p className="text-[11px] font-black text-slate-900 truncate">{profile?.fullName}</p>
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">Perfil</p>
             </div>
-            <Settings className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1 py-2">
-          <button onClick={() => setActiveTab('dashboard')} className={navItemClass('dashboard')}><LayoutDashboard className="w-5 h-5" /> Painel</button>
-          <button onClick={() => setActiveTab('finance')} className={navItemClass('finance')}><DollarSign className="w-5 h-5" /> Meu Dinheiro</button>
-          <button onClick={() => setActiveTab('goals')} className={navItemClass('goals')}><Target className="w-5 h-5" /> Metas</button>
+        <nav className="flex-1 px-3 space-y-0.5 py-2">
+          <button onClick={() => setActiveTab('dashboard')} className={navItemClass('dashboard')}><LayoutDashboard className="w-4 h-4" /> Painel</button>
+          <button onClick={() => setActiveTab('finance')} className={navItemClass('finance')}><DollarSign className="w-4 h-4" /> Finanças</button>
+          <button onClick={() => setActiveTab('goals')} className={navItemClass('goals')}><Target className="w-4 h-4" /> Metas</button>
         </nav>
         
-        <div className="p-4 border-t border-slate-100">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-rose-500 hover:bg-rose-50 transition-all">
-            <LogOut className="w-5 h-5" /> Sair
+        <div className="p-3 border-t border-slate-100">
+          <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 rounded-lg font-semibold text-rose-500 hover:bg-rose-50 transition-all">
+            <LogOut className="w-4 h-4" /> Sair
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 p-4 md:p-8 pt-24 md:pt-8 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-3 md:p-6 pt-20 md:pt-6 max-w-7xl mx-auto w-full">
         {activeTab === 'dashboard' && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-emerald-100 p-1.5 rounded-lg text-emerald-600"><ArrowUpCircle className="w-4 h-4" /></div>
-                  <span className="font-bold text-slate-400 text-[10px] uppercase tracking-wider">Ganhos</span>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <ArrowUpCircle className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="font-bold text-slate-400 text-[9px] uppercase tracking-wider">Ganhos</span>
                 </div>
-                <h3 className="text-xl font-black text-slate-800">R$ {totals.income.toLocaleString('pt-BR')}</h3>
+                <h3 className="text-base font-black text-slate-800">R$ {totals.income.toLocaleString('pt-BR')}</h3>
               </div>
-              <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-rose-100 p-1.5 rounded-lg text-rose-600"><ArrowDownCircle className="w-4 h-4" /></div>
-                  <span className="font-bold text-slate-400 text-[10px] uppercase tracking-wider">Gastos</span>
+              <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <ArrowDownCircle className="w-3.5 h-3.5 text-rose-600" />
+                  <span className="font-bold text-slate-400 text-[9px] uppercase tracking-wider">Gastos</span>
                 </div>
-                <h3 className="text-xl font-black text-slate-800">R$ {totals.expense.toLocaleString('pt-BR')}</h3>
+                <h3 className="text-base font-black text-slate-800">R$ {totals.expense.toLocaleString('pt-BR')}</h3>
               </div>
-              <div className="bg-slate-900 p-4 rounded-3xl text-white shadow-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-slate-800 p-1.5 rounded-lg text-slate-400"><Wallet className="w-4 h-4" /></div>
-                  <span className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Saldo</span>
+              <div className="bg-slate-900 p-3 rounded-2xl text-white shadow-xl">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="font-bold text-slate-500 text-[9px] uppercase tracking-wider">Saldo</span>
                 </div>
-                <h3 className="text-xl font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3>
+                <h3 className="text-base font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3>
               </div>
               <FinancialHealthScore score={financialScore} />
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-8 space-y-8">
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                  <h3 className="font-bold mb-6 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-emerald-600"/> Fluxo de Caixa (6 meses)</h3>
-                  <CashFlowChart transactions={transactions} />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              <div className="lg:col-span-8 space-y-4">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                  <h3 className="font-bold mb-3 flex items-center gap-2 text-xs"><BarChart3 className="w-4 h-4 text-emerald-600"/> Fluxo de Caixa (6 meses)</h3>
+                  <div className="h-[200px] w-full">
+                    <CashFlowChart transactions={transactions} />
+                  </div>
                 </div>
                 <InvestmentRecommendations goals={goals} balance={totals.balance} />
               </div>
-              <div className="lg:col-span-4 space-y-8">
-                <AIAdvisor activeGoals={goals} />
+              <div className="lg:col-span-4 space-y-4">
+                <div className="h-[400px]">
+                  <AIAdvisor activeGoals={goals} />
+                </div>
                 <SavingsChallenges challenges={challenges} onAddChallenge={() => {}} onUpdateProgress={() => {}} />
               </div>
             </div>
@@ -273,72 +272,68 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'finance' && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <h2 className="text-2xl font-black text-slate-800">Meu Dinheiro</h2>
-              <div className="flex w-full md:w-auto gap-2">
-                <div className="relative flex-1 md:w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar transação..." 
-                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-sm"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <button onClick={() => setIsTransactionModalOpen(true)} className="bg-emerald-600 text-white p-2 rounded-xl hover:bg-emerald-700 transition-colors">
-                  <PlusCircle className="w-6 h-6" />
-                </button>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-black text-slate-800">Finanças</h2>
+              <button onClick={() => setIsTransactionModalOpen(true)} className="flex items-center gap-1.5 bg-emerald-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all">
+                <PlusCircle className="w-4 h-4" /> Registrar
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar..." 
+                  className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-xs"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
+                <button onClick={() => setFilterType('all')} className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${filterType === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>Tudo</button>
+                <button onClick={() => setFilterType('income')} className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${filterType === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`}>Ganhos</button>
+                <button onClick={() => setFilterType('expense')} className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${filterType === 'expense' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500'}`}>Gastos</button>
               </div>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              <button onClick={() => setFilterType('all')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${filterType === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>Tudo</button>
-              <button onClick={() => setFilterType('income')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${filterType === 'income' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>Ganhos</button>
-              <button onClick={() => setFilterType('expense')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${filterType === 'expense' ? 'bg-rose-600 text-white' : 'bg-white text-slate-500 border border-slate-200'}`}>Gastos</button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-4 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              <div className="lg:col-span-4 space-y-4">
                 <BudgetTracker budgets={budgetProgress} onSetBudget={() => setIsBudgetModalOpen(true)} />
-                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                  <h3 className="font-bold mb-4 flex items-center gap-2"><PieChartIcon className="w-5 h-5 text-emerald-600"/> Divisão de Gastos</h3>
-                  <div className="h-[250px] w-full relative">
-                    <ResponsiveContainer width="100%" height={250}>
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                  <h3 className="font-bold mb-2 text-xs flex items-center gap-1.5"><PieChartIcon className="w-4 h-4 text-emerald-600"/> Gastos</h3>
+                  <div className="h-[180px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={categoryChartData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                        <Pie data={categoryChartData} innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value">
                           {categoryChartData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                         </Pie>
                         <RechartsTooltip />
-                        <Legend iconType="circle" />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
               </div>
               <div className="lg:col-span-8">
-                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] font-black uppercase">
-                      <tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4 text-right">Valor</th></tr>
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-400 text-[9px] font-black uppercase tracking-wider">
+                      <tr><th className="px-4 py-2">Data</th><th className="px-4 py-2">Categoria</th><th className="px-4 py-2 text-right">Valor</th></tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredTransactions.map(t => (
                         <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-4 text-xs text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
-                          <td className="px-6 py-4">
-                            <span className="capitalize font-bold text-slate-700 text-sm">{t.category}</span>
-                            {t.description && <p className="text-[10px] text-slate-400 italic truncate max-w-[150px]">{t.description}</p>}
+                          <td className="px-4 py-2 text-[10px] text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-2">
+                            <span className="capitalize font-bold text-slate-700 text-xs">{t.category}</span>
+                            {t.description && <p className="text-[9px] text-slate-400 italic truncate max-w-[120px]">{t.description}</p>}
                           </td>
-                          <td className={`px-6 py-4 text-right font-black text-sm ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          <td className={`px-4 py-2 text-right font-black text-xs ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
                           </td>
                         </tr>
                       ))}
-                      {filteredTransactions.length === 0 && (
-                        <tr><td colSpan={3} className="px-6 py-12 text-center text-slate-400 text-sm">Nenhuma transação encontrada.</td></tr>
-                      )}
                     </tbody>
                   </table>
                 </div>
@@ -348,9 +343,14 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'goals' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center"><h2 className="text-2xl font-black text-slate-800">Minhas Metas</h2><button onClick={() => setIsGoalModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95"><Plus className="w-5 h-5" /> Nova Meta</button></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-black text-slate-800">Minhas Metas</h2>
+              <button onClick={() => setIsGoalModalOpen(true)} className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-emerald-100 transition-all">
+                <Plus className="w-4 h-4" /> Nova Meta
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {goals.map(g => (
                 <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} onUpdateDescription={handleUpdateDescription} />
               ))}
