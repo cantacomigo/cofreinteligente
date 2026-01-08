@@ -21,6 +21,7 @@ import AddTransactionModal from './src/components/AddTransactionModal.tsx';
 import GoalAnalysisModal from './src/components/GoalAnalysisModal.tsx';
 import BudgetTracker from './src/components/BudgetTracker.tsx';
 import SetBudgetModal from './src/components/SetBudgetModal.tsx';
+import InvestmentRecommendations from './src/components/InvestmentRecommendations.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
@@ -53,9 +54,6 @@ const App: React.FC = () => {
   }, [transactions, goals]);
 
   const budgetProgress = useMemo(() => {
-    const currentMonth = new Date().getMonth() + 1;
-    const currentYear = new Date().getFullYear();
-    
     return budgets.map(b => {
       const spent = transactions
         .filter(t => t.type === 'expense' && t.category === b.category)
@@ -169,11 +167,9 @@ const App: React.FC = () => {
     if (!user) return;
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
-    
     const { error } = await supabase.from('budgets').upsert({
       user_id: user.id, category, limit_amount, month: currentMonth, year: currentYear
     }, { onConflict: 'user_id, category, month, year' });
-    
     if (!error) fetchData(user.id);
   };
 
@@ -240,6 +236,7 @@ const App: React.FC = () => {
                     </ResponsiveContainer>
                   </div>
                 </div>
+                <InvestmentRecommendations goals={goals} balance={totals.balance} />
               </div>
               <div className="lg:col-span-4"><AIAdvisor activeGoals={goals} /></div>
             </div>
@@ -254,7 +251,6 @@ const App: React.FC = () => {
                 <PlusCircle className="w-5 h-5" /> Registrar Valor
               </button>
             </div>
-            
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               <div className="lg:col-span-4 space-y-6">
                 <BudgetTracker budgets={budgetProgress} onSetBudget={() => setIsBudgetModalOpen(true)} />
