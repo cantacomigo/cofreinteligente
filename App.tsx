@@ -264,17 +264,17 @@ const App: React.FC = () => {
         {activeTab === 'dashboard' && (
           <div className="space-y-3 md:space-y-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Ganhos</span>
-                <h3 className="text-xl font-black text-slate-900">R$ {totals.income.toLocaleString('pt-BR')}</h3>
+              <div className="bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center min-h-[70px]">
+                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Ganhos</span>
+                <h3 className="text-base font-black text-slate-900">R$ {totals.income.toLocaleString('pt-BR')}</h3>
               </div>
-              <div className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm">
-                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Gastos</span>
-                <h3 className="text-xl font-black text-slate-900">R$ {totals.expense.toLocaleString('pt-BR')}</h3>
+              <div className="bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center min-h-[70px]">
+                <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Gastos</span>
+                <h3 className="text-base font-black text-slate-900">R$ {totals.expense.toLocaleString('pt-BR')}</h3>
               </div>
-              <div className="bg-slate-900 p-3.5 rounded-2xl text-white shadow-lg col-span-2 lg:col-span-1">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-0.5">Saldo</span>
-                <h3 className="text-xl font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3>
+              <div className="bg-slate-900 p-2.5 rounded-2xl text-white shadow-lg flex flex-col justify-center min-h-[70px]">
+                <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block mb-0.5">Saldo</span>
+                <h3 className="text-base font-black text-emerald-400">R$ {totals.balance.toLocaleString('pt-BR')}</h3>
               </div>
               <FinancialHealthScore score={financialScore} />
             </div>
@@ -283,7 +283,7 @@ const App: React.FC = () => {
               <div className="lg:col-span-8 space-y-3 md:space-y-4">
                 <div className="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm">
                   <h3 className="font-black text-[10px] md:text-xs flex items-center gap-2 mb-3"><BarChart3 className="w-3.5 h-3.5 text-emerald-600"/> Fluxo Mensal</h3>
-                  <div className="h-[220px]">
+                  <div className="h-[200px]">
                     <CashFlowChart transactions={transactions} />
                   </div>
                 </div>
@@ -302,6 +302,7 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {/* ... manter outras tabs (omitidas para brevidade, mas as mudanças de estilo seriam consistentes) */}
         {activeTab === 'finance' && (
           <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-3">

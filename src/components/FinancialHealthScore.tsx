@@ -21,28 +21,26 @@ const FinancialHealthScore: React.FC<FinancialHealthScoreProps> = ({ score }) =>
   };
 
   const getLabel = (s: number) => {
-    if (s >= 80) return { text: 'Excelente', icon: <ShieldCheck className="w-4 h-4 text-emerald-500" /> };
-    if (s >= 50) return { text: 'Regular', icon: <TrendingUp className="w-4 h-4 text-amber-500" /> };
-    return { text: 'Crítica', icon: <AlertCircle className="w-4 h-4 text-rose-500" /> };
+    if (s >= 80) return { text: 'Excelente', icon: <ShieldCheck className="w-3 h-3 text-emerald-500" /> };
+    if (s >= 50) return { text: 'Regular', icon: <TrendingUp className="w-3 h-3 text-amber-500" /> };
+    return { text: 'Crítica', icon: <AlertCircle className="w-3 h-3 text-rose-500" /> };
   };
 
   const label = getLabel(score);
 
   return (
-    <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
-      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Saúde Financeira</h3>
-      
-      <div className="relative w-full h-24">
+    <div className="bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+      <div className="relative w-14 h-14 flex-shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
-              cy="100%"
-              startAngle={180}
-              endAngle={0}
-              innerRadius={45}
-              outerRadius={60}
+              cy="50%"
+              innerRadius={18}
+              outerRadius={25}
+              startAngle={90}
+              endAngle={450}
               paddingAngle={0}
               dataKey="value"
               stroke="none"
@@ -52,20 +50,18 @@ const FinancialHealthScore: React.FC<FinancialHealthScoreProps> = ({ score }) =>
             </Pie>
           </PieChart>
         </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
-          <span className="text-2xl font-black text-slate-900 leading-none">{score}</span>
-          <span className="text-[8px] font-bold text-slate-400">PONTOS</span>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xs font-black text-slate-900">{score}</span>
         </div>
       </div>
 
-      <div className="mt-2 flex items-center gap-1.5 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-        {label.icon}
-        <span className="font-bold text-slate-700 text-xs">{label.text}</span>
+      <div className="flex flex-col">
+        <h3 className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Saúde Financeira</h3>
+        <div className="flex items-center gap-1">
+          {label.icon}
+          <span className="font-bold text-slate-700 text-[10px]">{label.text}</span>
+        </div>
       </div>
-      
-      <p className="mt-2 text-[10px] text-slate-400 leading-tight">
-        Baseado em suas metas e gastos.
-      </p>
     </div>
   );
 };
