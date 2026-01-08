@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Wallet, Target, LayoutDashboard, 
   ArrowUpCircle, ArrowDownCircle, DollarSign, PlusCircle, LogOut, Loader2, PieChart as PieChartIcon,
-  BarChart3, Plus, Search, Settings, User, Bell, Menu, X as CloseIcon
+  BarChart3, Plus, Search, Settings, User, Bell, Menu, X as CloseIcon, Filter, ArrowRight
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
@@ -302,65 +302,128 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* ... manter outras tabs (omitidas para brevidade, mas as mudanças de estilo seriam consistentes) */}
         {activeTab === 'finance' && (
-          <div className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          <div className="space-y-6 max-w-5xl mx-auto">
+            {/* Barra de Filtros e Busca Unificada */}
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input 
                   type="text" 
-                  placeholder="Pesquisar..." 
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-xs font-medium"
+                  placeholder="Pesquisar em suas transações..." 
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-2xl outline-none focus:border-emerald-500 shadow-sm text-sm font-medium transition-all"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="flex gap-1 p-0.5 bg-white border border-slate-200 rounded-xl shadow-sm">
-                <button onClick={() => setFilterType('all')} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${filterType === 'all' ? 'bg-slate-900 text-white' : 'text-slate-400'}`}>Tudo</button>
-                <button onClick={() => setFilterType('income')} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${filterType === 'income' ? 'bg-emerald-600 text-white' : 'text-slate-400'}`}>Ganhos</button>
-                <button onClick={() => setFilterType('expense')} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${filterType === 'expense' ? 'bg-rose-500 text-white' : 'text-slate-400'}`}>Gastos</button>
+              <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm w-full md:w-auto">
+                <button onClick={() => setFilterType('all')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'all' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Tudo</button>
+                <button onClick={() => setFilterType('income')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'income' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Ganhos</button>
+                <button onClick={() => setFilterType('expense')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'expense' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Gastos</button>
               </div>
+              <button 
+                onClick={() => setIsTransactionModalOpen(true)}
+                className="w-full md:w-auto px-6 py-3.5 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+              >
+                <PlusCircle className="w-5 h-5" /> Novo Registro
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-4 space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-4 space-y-6">
                 <BudgetTracker budgets={budgetProgress} onSetBudget={() => setIsBudgetModalOpen(true)} />
-                <div className="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm">
-                  <h3 className="font-black text-[10px] flex items-center gap-2 mb-3"><PieChartIcon className="w-3.5 h-3.5 text-emerald-600"/> Gastos por Categoria</h3>
-                  <div className="h-[180px] w-full">
+                
+                <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+                  <div className="flex justify-between items-center mb-6">
+                    <div>
+                      <h3 className="font-black text-xs flex items-center gap-2 text-slate-800 uppercase tracking-widest">
+                        <PieChartIcon className="w-4 h-4 text-emerald-600"/> 
+                        Categorias
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-medium">Distribuição de gastos</p>
+                    </div>
+                  </div>
+                  <div className="h-[200px] w-full relative">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                        <Pie data={categoryChartData} innerRadius={40} outerRadius={55} paddingAngle={4} dataKey="value">
+                        <Pie 
+                          data={categoryChartData} 
+                          innerRadius={55} 
+                          outerRadius={75} 
+                          paddingAngle={6} 
+                          dataKey="value"
+                          stroke="none"
+                        >
                           {categoryChartData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                         </Pie>
-                        <RechartsTooltip contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px'}} />
+                        <RechartsTooltip 
+                          contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold'}} 
+                        />
                       </PieChart>
                     </ResponsiveContainer>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center">
+                        <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Total</p>
+                        <p className="text-sm font-black text-slate-900 mt-1">R$ {totals.expense.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    {categoryChartData.slice(0, 4).map((cat, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                        <span className="text-[10px] font-bold text-slate-500 truncate capitalize">{cat.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
+
               <div className="lg:col-span-8">
-                <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                      <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Extrato de Movimentações</h3>
+                      <p className="text-[10px] text-slate-400 font-medium">{filteredTransactions.length} transações encontradas</p>
+                    </div>
+                    <Filter className="w-4 h-4 text-slate-300" />
+                  </div>
                   <div className="divide-y divide-slate-50">
-                    {filteredTransactions.map(t => (
-                      <div key={t.id} className="p-3 flex justify-between items-center hover:bg-slate-50/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-1.5 rounded-lg ${t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-                            {t.type === 'income' ? <ArrowUpCircle className="w-3.5 h-3.5" /> : <ArrowDownCircle className="w-3.5 h-3.5" />}
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-800 text-[11px] capitalize">{t.category}</p>
-                            <p className="text-[9px] text-slate-400 font-medium">{new Date(t.createdAt).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`font-black text-[11px] ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
-                            {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
-                          </p>
-                        </div>
+                    {filteredTransactions.length === 0 ? (
+                      <div className="py-20 text-center">
+                        <p className="text-slate-400 text-sm font-medium">Nenhuma transação encontrada.</p>
                       </div>
-                    ))}
+                    ) : (
+                      filteredTransactions.map(t => (
+                        <div key={t.id} className="p-5 flex justify-between items-center hover:bg-slate-50 transition-all group cursor-default">
+                          <div className="flex items-center gap-4">
+                            <div className={`p-3 rounded-2xl transition-transform group-hover:scale-110 ${t.type === 'income' ? 'bg-emerald-50 text-emerald-600 shadow-sm shadow-emerald-100' : 'bg-rose-50 text-rose-500 shadow-sm shadow-rose-100'}`}>
+                              {t.type === 'income' ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-black text-slate-800 text-sm capitalize">{t.category}</p>
+                                {t.method === 'pix' && <span className="bg-indigo-50 text-indigo-600 text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider">Pix</span>}
+                              </div>
+                              <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
+                                {t.description || 'Sem descrição'} 
+                                <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                                {new Date(t.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className={`font-black text-base tracking-tighter ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                                {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
+                              </p>
+                              <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Confirmado</p>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-slate-200 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0" />
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
