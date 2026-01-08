@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, Plus, Calendar, Settings, Info, Trash2, Edit3, Check, X, FileText } from 'lucide-react';
+import { TrendingUp, Plus, Calendar, Settings, Trash2, Check, X, FileText, ChevronRight } from 'lucide-react';
 import { Goal } from '../types.ts';
 import { CATEGORIES } from '../constants.tsx';
 
@@ -26,91 +26,78 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onDeposit, onViewDetails, onD
   const projectedValue = goal.currentAmount * Math.pow(1 + (goal.interestRate / 100), diffYears);
   const estimatedYield = projectedValue - goal.currentAmount;
 
-  const handleSaveDesc = () => {
-    if (onUpdateDescription) {
-      onUpdateDescription(goal.id, tempDesc);
-    }
-    setIsEditingDesc(false);
-  };
-
-  const handleCancelDesc = () => {
-    setTempDesc(goal.description || '');
-    setIsEditingDesc(false);
-  };
-
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col group">
-      <div className={`px-3 py-2 ${category.color} flex justify-between items-center text-white`}>
-        <div className="flex items-center gap-1.5">
-          <div className="bg-white/20 p-1 rounded-md">{React.cloneElement(category.icon as React.ReactElement, { className: 'w-3.5 h-3.5' })}</div>
-          <span className="font-bold text-[10px] uppercase tracking-wider">{category.label}</span>
-        </div>
-        <div className="flex items-center gap-0.5">
-          <button onClick={() => onDelete(goal)} className="p-1 hover:bg-rose-500/30 rounded-full transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-          <button onClick={() => onViewDetails(goal)} className="p-1 hover:bg-white/20 rounded-full transition-colors"><Settings className="w-3.5 h-3.5" /></button>
-        </div>
-      </div>
+    <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col group relative">
+      <div className={`h-1.5 w-full ${category.color}`} />
       
-      <div className="p-3.5 flex-1 flex flex-col">
-        <div className="flex justify-between items-start mb-1">
-          <h3 className="text-sm font-bold text-slate-800 truncate">{goal.title}</h3>
-          <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full text-[9px] font-black">
-            <TrendingUp className="w-2.5 h-2.5" /> {goal.interestRate}%
-          </div>
-        </div>
-
-        <div className="mb-2 relative">
-          {isEditingDesc ? (
-            <div className="space-y-1 animate-in fade-in">
-              <textarea
-                value={tempDesc}
-                onChange={(e) => setTempDesc(e.target.value)}
-                className="w-full p-2 text-[11px] border border-emerald-100 rounded-lg focus:border-emerald-500 outline-none resize-none bg-slate-50 text-slate-700 min-h-[50px]"
-                autoFocus
-              />
-              <div className="flex justify-end gap-1">
-                <button onClick={handleCancelDesc} className="p-1 text-slate-400 hover:bg-slate-100 rounded-md"><X className="w-3 h-3" /></button>
-                <button onClick={handleSaveDesc} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-md"><Check className="w-3 h-3" /></button>
-              </div>
+      <div className="p-6 flex-1 flex flex-col">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`${category.color} p-2.5 rounded-2xl text-white shadow-lg shadow-current/20`}>
+              {React.cloneElement(category.icon as React.ReactElement, { className: 'w-5 h-5' })}
             </div>
-          ) : (
-            <div onClick={() => setIsEditingDesc(true)} className="group/desc cursor-pointer flex items-start gap-1.5 p-1 rounded-lg hover:bg-slate-50">
-              <FileText className="w-3 h-3 text-slate-300 mt-0.5" />
-              <p className={`text-[10px] leading-tight line-clamp-2 ${goal.description ? 'text-slate-500' : 'text-slate-300 italic'}`}>
-                {goal.description || 'Adicionar descrição...'}
-              </p>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-baseline gap-1 mb-2">
-          <span className="text-lg font-black text-slate-900">R$ {goal.currentAmount.toLocaleString('pt-BR')}</span>
-          <span className="text-slate-400 text-[10px] font-bold">/ {goal.targetAmount.toLocaleString('pt-BR')}</span>
-        </div>
-
-        <div className="space-y-1 mb-3">
-          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div className={`h-full ${category.color}`} style={{ width: `${progress}%` }} />
-          </div>
-          <div className="flex justify-between text-[9px] font-black uppercase tracking-tight">
-            <span className="text-emerald-600">{progress.toFixed(0)}%</span>
-            <div className="flex items-center gap-1 text-slate-400">
-              <Calendar className="w-3 h-3" /> {deadlineDate.toLocaleDateString('pt-BR')}
+            <div>
+              <h3 className="text-sm font-black text-slate-900 group-hover:text-emerald-600 transition-colors">{goal.title}</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{category.label}</p>
             </div>
           </div>
+          <button 
+            onClick={() => onDelete(goal)} 
+            className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
 
-        {goal.currentAmount > 0 && (
-          <div className="bg-slate-50 rounded-lg p-2 mb-4 border border-slate-100">
-            <p className="text-[9px] text-slate-500 leading-tight">
-              Rendimento estimado: <span className="text-emerald-600 font-bold">R$ {estimatedYield.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
-            </p>
+        <div className="mb-6">
+          <div className="flex items-baseline gap-1.5 mb-1">
+            <span className="text-xs font-bold text-slate-400">R$</span>
+            <span className="text-3xl font-black text-slate-900 tracking-tighter">
+              {goal.currentAmount.toLocaleString('pt-BR')}
+            </span>
           </div>
-        )}
+          <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase">
+            <span>Objetivo: R$ {goal.targetAmount.toLocaleString('pt-BR')}</span>
+            <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{progress.toFixed(0)}%</span>
+          </div>
+          <div className="mt-3 h-2.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+            <div 
+              className={`h-full ${category.color} transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.1)]`} 
+              style={{ width: `${progress}%` }} 
+            />
+          </div>
+        </div>
 
-        <div className="mt-auto grid grid-cols-2 gap-2">
-          <button onClick={() => onDeposit(goal)} className="flex items-center justify-center gap-1 bg-emerald-600 text-white font-bold py-1.5 rounded-lg text-[10px] hover:bg-emerald-700 transition-all"><Plus className="w-3.5 h-3.5" /> Depósito</button>
-          <button onClick={() => onViewDetails(goal)} className="flex items-center justify-center gap-1 bg-slate-100 text-slate-700 font-bold py-1.5 rounded-lg text-[10px] hover:bg-slate-200 transition-all">Análise</button>
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Rendimento</p>
+            <div className="flex items-center gap-1 text-emerald-600">
+              <TrendingUp className="w-3 h-3" />
+              <span className="text-xs font-black">+{goal.interestRate}% a.a.</span>
+            </div>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+            <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Prazo</p>
+            <div className="flex items-center gap-1 text-slate-600">
+              <Calendar className="w-3 h-3" />
+              <span className="text-xs font-black">{deadlineDate.toLocaleDateString('pt-BR', {month: 'short', year: '2-digit'})}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-auto flex gap-2">
+          <button 
+            onClick={() => onDeposit(goal)} 
+            className="flex-1 bg-slate-900 text-white font-black py-3 rounded-2xl text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 active:scale-95"
+          >
+            Depositar
+          </button>
+          <button 
+            onClick={() => onViewDetails(goal)} 
+            className="p-3 bg-white border border-slate-200 text-slate-900 rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
