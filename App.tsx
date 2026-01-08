@@ -61,7 +61,6 @@ const App: React.FC = () => {
     const progressAvg = goals.reduce((acc, g) => acc + (g.currentAmount / g.targetAmount), 0) / goals.length;
     const expenseRatio = totals.income > 0 ? (totals.expense / totals.income) : 1;
     
-    // Cálculo simplificado: Peso de 60% no progresso das metas e 40% no controle de gastos
     const score = (progressAvg * 60) + ((1 - Math.min(expenseRatio, 1)) * 40);
     return Math.round(score);
   }, [goals, totals]);
@@ -153,6 +152,11 @@ const App: React.FC = () => {
   const handleAddGoal = async (newGoal: any) => { if (!user) return; await supabase.from('goals').insert({ user_id: user.id, ...newGoal }); fetchData(user.id); };
   const handleAddTransaction = async (newTx: any) => { if (!user) return; await supabase.from('transactions').insert({ user_id: user.id, ...newTx }); fetchData(user.id); };
 
+  const handleUpdateDescription = async (goalId: string, description: string) => {
+    const { error } = await supabase.from('goals').update({ description }).eq('id', goalId);
+    if (!error && user) fetchData(user.id);
+  };
+
   const handleAddChallenge = async () => {
     if (!user) return;
     const { error } = await supabase.from('challenges').insert({
@@ -167,7 +171,7 @@ const App: React.FC = () => {
     if (!challenge) return;
     const newAmount = Number(challenge.current_amount) + amount;
     const { error } = await supabase.from('challenges').update({ current_amount: newAmount }).eq('id', id);
-    if (!error) fetchData(user.id);
+    if (!error && user) fetchData(user.id);
   };
 
   const handleSaveBudget = async (category: string, limit_amount: number) => {
@@ -178,7 +182,7 @@ const App: React.FC = () => {
     if (!error) fetchData(user.id);
   };
 
-  const handleDeleteGoal = async (goal: Goal) => { if (!confirm('Deseja realmente excluir esta meta?')) return; await supabase.from('goals').delete().eq('id', goal.id); fetchData(user.id); };
+  const handleDeleteGoal = async (goal: Goal) => { if (!confirm('Deseja realmente excluir esta meta?')) return; await supabase.from('goals').delete().eq('id', goal.id); if (user) fetchData(user.id); };
   const handleLogout = () => supabase.auth.signOut();
 
   const navItemClass = (tab: Tab) => `w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${activeTab === tab ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-slate-50'}`;
@@ -241,7 +245,18 @@ const App: React.FC = () => {
         {activeTab === 'goals' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center"><h2 className="text-2xl font-black text-slate-800">Minhas Metas</h2><button onClick={() => setIsGoalModalOpen(true)} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95"><Plus className="w-5 h-5" /> Nova Meta</button></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{goals.map(g => (<GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} />))}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {goals.map(g => (
+                <GoalCard 
+                  key={g.id} 
+                  goal={g} 
+                  onDeposit={handleDeposit} 
+                  onDelete={handleDeleteGoal} 
+                  onViewDetails={handleAnalyseGoal} 
+                  onUpdateDescription={handleUpdateDescription}
+                />
+              ))}
+            </div>
           </div>
         )}
       </main>
