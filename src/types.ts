@@ -2,10 +2,10 @@ export interface Goal {
   id: string;
   userId: string;
   title: string;
-  description?: string; // Campo para detalhes da meta
+  description?: string;
   targetAmount: number;
   currentAmount: number;
-  interestRate: number; // Taxa de juros anual (%)
+  interestRate: number;
   deadline: string;
   category: 'travel' | 'car' | 'home' | 'education' | 'emergency' | 'leisure';
   createdAt: string;
@@ -13,7 +13,7 @@ export interface Goal {
 
 export interface Transaction {
   id: string;
-  goalId?: string; // Opcional para transações gerais de caixa
+  goalId?: string;
   amount: number;
   type: 'deposit' | 'withdrawal' | 'yield' | 'income' | 'expense';
   category: string;
@@ -33,13 +33,4 @@ export interface UserProfile {
 export interface ChatMessage {
   role: 'ai' | 'user';
   text: string;
-}
-
-export interface AutomaticPlan {
-  id: string;
-  goalId: string;
-  amount: number;
-  frequency: 'daily' | 'weekly' | 'monthly';
-  nextExecution: string;
-  active: boolean;
 }

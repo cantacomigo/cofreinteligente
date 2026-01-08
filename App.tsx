@@ -1,30 +1,29 @@
+"use client";
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
-  Wallet, Target, TrendingUp, History, Plus, LayoutDashboard, 
-  Trash2, Clock, Sparkles, ChevronRight, Layers, BarChart3,
-  ArrowUpCircle, ArrowDownCircle, DollarSign, PlusCircle, LogOut, Loader2, PieChart as PieChartIcon
+  Wallet, Target, LayoutDashboard, 
+  ArrowUpCircle, ArrowDownCircle, DollarSign, PlusCircle, LogOut, Loader2, PieChart as PieChartIcon,
+  BarChart3, Plus
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
   Legend
 } from 'recharts';
-import { Goal, Transaction, UserProfile, AutomaticPlan } from './src/types.ts';
+import { Goal, Transaction, UserProfile } from './src/types.ts';
 import { CATEGORIES } from './src/constants.tsx';
 import GoalCard from './src/components/GoalCard.tsx';
 import PixModal from './src/components/PixModal.tsx';
 import AIAdvisor from './src/components/AIAdvisor.tsx';
-import InvestmentRecommendations from './src/components/InvestmentRecommendations.tsx';
 import AddGoalModal from './src/components/AddGoalModal.tsx';
 import AddTransactionModal from './src/components/AddTransactionModal.tsx';
 import GoalAnalysisModal from './src/components/GoalAnalysisModal.tsx';
-import AddPlanModal from './src/components/AddPlanModal.tsx';
-import AutomaticSavings from './src/components/AutomaticSavings.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
 
-type Tab = 'dashboard' | 'goals' | 'finance' | 'investments';
+type Tab = 'dashboard' | 'goals' | 'finance';
 
 const App: React.FC = () => {
   const { session, user, isLoading } = useSession();
@@ -32,13 +31,11 @@ const App: React.FC = () => {
   
   const [goals, setGoals] = useState<Goal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [automaticPlans, setAutomaticPlans] = useState<AutomaticPlan[]>([]);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const [isPixOpen, setIsPixOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
@@ -75,7 +72,6 @@ const App: React.FC = () => {
 
   const fetchData = async (userId: string) => {
     try {
-      // 1. Perfil
       const { data: profileData } = await supabase
         .from('profiles')
         .select('id, first_name, last_name, avatar_url')
@@ -88,11 +84,10 @@ const App: React.FC = () => {
           email: user?.email || '',
           fullName: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || user?.email || 'Usuário',
           avatarUrl: profileData.avatar_url || undefined,
-          totalBalance: 0, // Será atualizado pelo useMemo
+          totalBalance: 0,
         });
       }
 
-      // 2. Metas
       const { data: goalsData, error: goalsError } = await supabase
         .from('goals')
         .select('*')
@@ -113,7 +108,6 @@ const App: React.FC = () => {
         })));
       }
 
-      // 3. Transações
       const { data: transactionsData, error: txError } = await supabase
         .from('transactions')
         .select('*')
@@ -131,25 +125,6 @@ const App: React.FC = () => {
           createdAt: t.created_at,
           method: t.method as Transaction['method'],
         })));
-      }
-
-      // 4. Planos Automáticos (com tratamento silencioso se falhar)
-      const { data: plansData, error: plansError } = await supabase
-        .from('automatic_plans')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (!plansError && plansData) {
-        setAutomaticPlans(plansData.map(p => ({
-          id: p.id,
-          goalId: p.goal_id,
-          amount: Number(p.amount),
-          frequency: p.frequency as any,
-          nextExecution: p.next_execution,
-          active: p.active
-        })));
-      } else if (plansError) {
-        console.warn("Aviso: Tabela automatic_plans pode não estar pronta ainda.", plansError.message);
       }
 
     } catch (err) {
@@ -222,33 +197,6 @@ const App: React.FC = () => {
     if (data) fetchData(user.id);
   };
 
-  const handleAddPlan = async (plan: { goalId: string; amount: number; frequency: string }) => {
-    if (!user) return;
-    const nextExec = new Date();
-    nextExec.setDate(nextExec.getDate() + (plan.frequency === 'daily' ? 1 : plan.frequency === 'weekly' ? 7 : 30));
-
-    await supabase.from('automatic_plans').insert({
-      user_id: user.id,
-      goal_id: plan.goalId,
-      amount: plan.amount,
-      frequency: plan.frequency,
-      next_execution: nextExec.toISOString().split('T')[0],
-      active: true
-    });
-    fetchData(user.id);
-  };
-
-  const handleTogglePlan = async (id: string, active: boolean) => {
-    await supabase.from('automatic_plans').update({ active }).eq('id', id);
-    setAutomaticPlans(prev => prev.map(p => p.id === id ? { ...p, active } : p));
-  };
-
-  const handleDeletePlan = async (id: string) => {
-    if (!confirm('Deseja excluir esta automação?')) return;
-    await supabase.from('automatic_plans').delete().eq('id', id);
-    setAutomaticPlans(prev => prev.filter(p => p.id !== id));
-  };
-
   const handleDeleteGoal = async (goal: Goal) => {
     if (!confirm('Deseja realmente excluir esta meta?')) return;
     await supabase.from('goals').delete().eq('id', goal.id);
@@ -284,7 +232,6 @@ const App: React.FC = () => {
           <button onClick={() => setActiveTab('dashboard')} className={navItemClass('dashboard')}><LayoutDashboard className="w-5 h-5" /> Painel</button>
           <button onClick={() => setActiveTab('finance')} className={navItemClass('finance')}><DollarSign className="w-5 h-5" /> Meu Dinheiro</button>
           <button onClick={() => setActiveTab('goals')} className={navItemClass('goals')}><Target className="w-5 h-5" /> Metas</button>
-          <button onClick={() => setActiveTab('investments')} className={navItemClass('investments')}><TrendingUp className="w-5 h-5" /> Investimentos</button>
         </nav>
         <div className="p-4 border-t border-slate-100">
           <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-rose-500 hover:bg-rose-50 transition-all"><LogOut className="w-5 h-5" /> Sair</button>
@@ -411,25 +358,11 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
-
-        {activeTab === 'investments' && (
-          <div className="space-y-8 animate-in zoom-in duration-500">
-            <AutomaticSavings 
-              plans={automaticPlans} 
-              goals={goals} 
-              onToggle={handleTogglePlan} 
-              onDelete={handleDeletePlan}
-              onAddClick={() => setIsPlanModalOpen(true)}
-            />
-            <InvestmentRecommendations goals={goals} balance={totals.invested} />
-          </div>
-        )}
       </main>
 
       <PixModal isOpen={isPixOpen} onClose={() => setIsPixOpen(false)} goalTitle={selectedGoal?.title || ''} onConfirm={confirmDeposit} />
       <AddGoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onAdd={handleAddGoal} />
       <AddTransactionModal isOpen={isTransactionModalOpen} onClose={() => setIsTransactionModalOpen(false)} onAdd={handleAddTransaction} />
-      <AddPlanModal isOpen={isPlanModalOpen} onClose={() => setIsPlanModalOpen(false)} goals={goals} onAdd={handleAddPlan} />
       {selectedGoal && (
         <GoalAnalysisModal 
           isOpen={isAnalysisOpen} 
