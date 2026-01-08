@@ -2,19 +2,26 @@ import { supabase } from "../integrations/supabase/client";
 import { Goal, Transaction } from "../types.ts";
 
 /**
- * Invoca a Edge Function 'gemini' garantindo a presença do token.
+ * Invoca a Edge Function 'gemini' garantindo um token de acesso válido e fresco.
  */
 const invokeGemini = async (action: string, payload: any) => {
   try {
-    // Pegamos a sessão atual de forma assíncrona para garantir que o token é o mais recente
-    const { data: { session } } = await supabase.auth.getSession();
+    // 1. Obtemos a sessão. getUser() é mais seguro que getSession() pois valida com o servidor se necessário.
+    let { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
+    // 2. Se não houver sessão ou houver erro, tentamos um refresh manual
+    if (sessionError || !session) {
+      const { data: refreshData } = await supabase.auth.refreshSession();
+      session = refreshData.session;
+    }
+
     if (!session?.access_token) {
-      console.warn(`[IA] Falha: Sessão não encontrada para a ação ${action}`);
+      console.error(`[IA] Erro: Usuário não possui token de acesso válido para ${action}`);
       return null;
     }
 
-    // Chamada explícita passando o Authorization header
+    // 3. Chamada para a Edge Function
+    // Nota: O cabeçalho 'Authorization' é adicionado manualmente para garantir que o token correto seja enviado.
     const { data, error } = await supabase.functions.invoke('gemini', {
       body: { action, payload },
       headers: {
@@ -23,12 +30,18 @@ const invokeGemini = async (action: string, payload: any) => {
     });
     
     if (error) {
-      console.error(`[IA] Erro na Edge Function (${action}):`, error);
+      // Se recebermos um 401 aqui, tentamos atualizar a sessão uma última vez para a próxima chamada
+      if (error.status === 401) {
+        console.warn("[IA] Token rejeitado pela função. Tentando atualizar sessão para futuras chamadas...");
+        await supabase.auth.refreshSession();
+      }
+      console.error(`[IA] Erro retornado pela função (${action}):`, error);
       return null;
     }
+
     return data;
   } catch (err) {
-    console.error(`[IA] Erro inesperado ao invocar IA (${action}):`, err);
+    console.error(`[IA] Falha na comunicação com a IA (${action}):`, err);
     return null;
   }
 };
