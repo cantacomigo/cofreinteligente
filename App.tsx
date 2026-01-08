@@ -374,7 +374,7 @@ const App: React.FC = () => {
                       <p className="text-[10px] text-slate-400 font-medium">Distribuição de gastos</p>
                     </div>
                   </div>
-                  <div className="h-[200px] w-full relative">
+                  <div className="h-[200px] w-full relative min-w-0">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <PieChart>
                         <Pie 
