@@ -22,7 +22,9 @@ export async function getFinancialInsight(goal: Goal, userBalance: number) {
       generationConfig: { responseMimeType: "application/json" }
     });
 
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
     const response = await result.response;
     return JSON.parse(response.text());
   } catch (error) {
@@ -45,7 +47,9 @@ export async function getInvestmentRecommendations(goals: Goal[], balance: numbe
       generationConfig: { responseMimeType: "application/json" }
     });
 
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
     const response = await result.response;
     return JSON.parse(response.text());
   } catch (error) {
@@ -61,7 +65,9 @@ export async function chatFinancialAdvisor(message: string, context: string) {
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
     const fullPrompt = `Contexto: ${context}. Você é um consultor financeiro brasileiro experiente. Pergunta: ${message}`;
     
-    const result = await model.generateContent(fullPrompt);
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
+    });
     const response = await result.response;
     return response.text() || "Não consegui processar sua resposta.";
   } catch (error) {
