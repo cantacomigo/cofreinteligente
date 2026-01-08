@@ -47,6 +47,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  let action, payload;
+
+  try {
+    // Tenta ler o corpo da requisição JSON
+    ({ action, payload } = await req.json());
+  } catch (e) {
+    console.error("[gemini] Error parsing request body:", e.message);
+    return new Response(JSON.stringify({ error: 'Corpo da requisição inválido ou ausente.' }), { status: 400, headers: corsHeaders });
+  }
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -72,7 +82,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Erro de configuração' }), { status: 500, headers: corsHeaders })
     }
 
-    const { action, payload } = await req.json()
     console.log(`[gemini] Action received: ${action}`);
     
     const genAI = new GoogleGenerativeAI(apiKey)
