@@ -9,6 +9,7 @@ import Hero from '@/src/components/landing/Hero';
 import Features from '@/src/components/landing/Features';
 import Pricing from '@/src/components/landing/Pricing';
 import FAQ from '@/src/components/landing/FAQ';
+import Contact from '@/src/components/landing/Contact';
 
 const Login: React.FC = () => {
   return (
@@ -22,16 +23,21 @@ const Login: React.FC = () => {
             </div>
             <span className="font-black text-xl tracking-tighter">COFRE.</span>
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-500">
+          <div className="hidden lg:flex items-center gap-8 text-sm font-bold text-slate-500">
+            <a href="#" className="hover:text-emerald-600 transition-colors">Home</a>
             <a href="#features" className="hover:text-emerald-600 transition-colors">Recursos</a>
             <a href="#pricing" className="hover:text-emerald-600 transition-colors">Preços</a>
+            <a href="#contact" className="hover:text-emerald-600 transition-colors">Contato</a>
             <button 
               onClick={() => document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' })}
               className="px-6 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200"
             >
-              Começar Agora
+              Login / Cadastro
             </button>
           </div>
+          <button className="lg:hidden p-2 text-slate-600">
+            <Sparkles className="w-6 h-6" />
+          </button>
         </div>
       </nav>
 
@@ -45,11 +51,11 @@ const Login: React.FC = () => {
           <div className="container mx-auto px-4">
             <div className="flex flex-col lg:flex-row items-center gap-16">
               <div className="flex-1">
-                <div className="bg-slate-900 rounded-[48px] p-12 text-white relative overflow-hidden">
+                <div className="bg-slate-900 rounded-[48px] p-12 text-white relative overflow-hidden shadow-2xl">
                   <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/20 blur-[100px] rounded-full" />
                   <h3 className="text-3xl font-black mb-6">Educação Financeira Levada a Sério</h3>
                   <p className="text-slate-400 text-lg leading-relaxed mb-8">
-                    Não somos apenas uma planilha bonita. O Cofre Inteligente foi desenhado para mudar sua mentalidade financeira. Através de algoritmos preditivos, mostramos o impacto real de cada cafézinho ou de cada investimento de longo prazo.
+                    Não somos apenas uma planilha bonita. O Cofre Inteligente foi desenhado para mudar sua mentalidade financeira através de algoritmos preditivos e insights acionáveis.
                   </p>
                   <div className="grid grid-cols-2 gap-6">
                     <div>
@@ -66,11 +72,11 @@ const Login: React.FC = () => {
               <div className="flex-1 space-y-6">
                 <h2 className="text-4xl font-black text-slate-900 tracking-tight">O que dizem nossos usuários?</h2>
                 <div className="space-y-4">
-                  <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                  <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-emerald-200 transition-colors">
                     <p className="text-slate-600 italic mb-4">"A IA do Cofre me ajudou a sair do vermelho em apenas 4 meses. As sugestões diárias são como ter um consultor no bolso."</p>
                     <p className="font-bold text-slate-900">Eduardo Santos <span className="text-xs text-slate-400 font-medium">— UX Designer</span></p>
                   </div>
-                  <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                  <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-emerald-200 transition-colors">
                     <p className="text-slate-600 italic mb-4">"Finalmente uma ferramenta que não é burocrática. O depósito simulado me motiva a investir de verdade todos os meses."</p>
                     <p className="font-bold text-slate-900">Carla Oliveira <span className="text-xs text-slate-400 font-medium">— Médica</span></p>
                   </div>
@@ -84,6 +90,8 @@ const Login: React.FC = () => {
 
         <FAQ />
 
+        <Contact />
+
         <section id="auth-section" className="py-24 bg-emerald-600 relative overflow-hidden">
           <div className="absolute inset-0 bg-grid-white/[0.05] -z-10" />
           <div className="container mx-auto px-4 flex flex-col items-center">
@@ -92,8 +100,8 @@ const Login: React.FC = () => {
                 <div className="bg-emerald-600 p-4 rounded-2xl mb-6 shadow-xl shadow-emerald-100">
                   <Sparkles className="w-8 h-8 text-white" />
                 </div>
-                <h2 className="text-3xl font-black text-slate-900 text-center">Entre ou Crie sua Conta</h2>
-                <p className="text-slate-500 text-sm mt-2 text-center">Transforme sua vida financeira hoje.</p>
+                <h2 className="text-3xl font-black text-slate-900 text-center">Comece agora mesmo</h2>
+                <p className="text-slate-500 text-sm mt-2 text-center">Junte-se a milhares de pessoas economizando mais.</p>
               </div>
               
               <Auth
@@ -120,7 +128,7 @@ const Login: React.FC = () => {
                 localization={{
                   variables: {
                     sign_in: { email_label: 'E-mail', password_label: 'Senha', button_label: 'Entrar', link_text: 'Já tem conta? Entrar' },
-                    sign_up: { email_label: 'E-mail', password_label: 'Senha', button_label: 'Começar Agora', link_text: 'Novo aqui? Criar conta' },
+                    sign_up: { email_label: 'E-mail', password_label: 'Senha', button_label: 'Criar Minha Conta', link_text: 'Novo aqui? Criar conta' },
                   },
                 }}
               />
@@ -139,9 +147,9 @@ const Login: React.FC = () => {
               <span className="font-black text-white text-xl tracking-tighter">COFRE.</span>
             </div>
             <div className="flex gap-6 text-sm font-bold">
-              <a href="#" className="hover:text-emerald-400 transition-colors">Termos</a>
+              <a href="#" className="hover:text-emerald-400 transition-colors">Termos de Uso</a>
               <a href="#" className="hover:text-emerald-400 transition-colors">Privacidade</a>
-              <a href="#" className="hover:text-emerald-400 transition-colors">Suporte</a>
+              <a href="#contact" className="hover:text-emerald-400 transition-colors">Suporte</a>
             </div>
             <div className="flex gap-4">
               <button className="p-2 hover:text-white transition-colors"><Github className="w-5 h-5" /></button>
@@ -149,7 +157,7 @@ const Login: React.FC = () => {
             </div>
           </div>
           <div className="text-center pt-8 border-t border-slate-800 text-[10px] font-bold uppercase tracking-widest">
-            Feito com <Heart className="w-3 h-3 inline text-rose-500" /> para sua liberdade financeira © 2024
+            Cofre Inteligente — Sua liberdade financeira começa aqui © 2024
           </div>
         </div>
       </footer>
