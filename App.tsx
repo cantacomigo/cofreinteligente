@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const { session, user, isLoading } = useSession();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [mounted, setMounted] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
   
   const [goals, setGoals] = useState<Goal[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -59,10 +60,18 @@ const App: React.FC = () => {
   const [editTransactionData, setEditTransactionData] = useState<Transaction | null>(null);
 
   useEffect(() => {
-    // Delay estratégico para garantir que o DOM de layout (Flex/Grid) já calculou as dimensões
-    const timer = setTimeout(() => setMounted(true), 150);
+    setMounted(true);
+    // Pequeno delay para garantir que o layout CSS terminou de calcular
+    const timer = setTimeout(() => setShowCharts(true), 300);
     return () => clearTimeout(timer);
   }, []);
+
+  // Reinicia o estado dos gráficos ao mudar de aba para forçar recalculo de dimensões
+  useEffect(() => {
+    setShowCharts(false);
+    const timer = setTimeout(() => setShowCharts(true), 150);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
 
   const totals = useMemo(() => {
     const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
@@ -322,7 +331,7 @@ const App: React.FC = () => {
                 <div className="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm">
                   <h3 className="font-black text-[10px] md:text-xs flex items-center gap-2 mb-3"><BarChart3 className="w-3.5 h-3.5 text-emerald-600"/> Fluxo Mensal</h3>
                   <div className="h-[200px]">
-                    <CashFlowChart transactions={transactions} />
+                    {showCharts ? <CashFlowChart transactions={transactions} /> : <div className="h-full w-full bg-slate-50 animate-pulse rounded-xl" />}
                   </div>
                 </div>
                 <InvestmentRecommendations goals={goals} balance={totals.balance} />
@@ -357,7 +366,7 @@ const App: React.FC = () => {
               <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-2xl shadow-sm w-full md:w-auto">
                 <button onClick={() => setFilterType('all')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'all' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Tudo</button>
                 <button onClick={() => setFilterType('income')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'income' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Ganhos</button>
-                <button onClick={() => setFilterType('expense')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'expense' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Gastos</button>
+                <button onClick={() => setFilterType('expense')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === 'expense' ? 'bg-rose-50 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>Gastos</button>
               </div>
               <button 
                 onClick={() => { setEditTransactionData(null); setIsTransactionModalOpen(true); }}
@@ -382,8 +391,8 @@ const App: React.FC = () => {
                     </div>
                   </div>
                   <div className="h-[200px] w-full relative min-w-0">
-                    {mounted ? (
-                      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    {showCharts ? (
+                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <PieChart>
                           <Pie 
                             data={categoryChartData} 
