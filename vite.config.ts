@@ -4,7 +4,6 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
     return {
       server: {
         port: 3000,
@@ -14,10 +13,7 @@ export default defineConfig(({ mode }) => {
         react(),
         tailwindcss(),
       ],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
+      // Removido o bloco 'define' que expunha as chaves de API
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
