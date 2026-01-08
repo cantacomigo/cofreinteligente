@@ -1,102 +1,108 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, getGenerativeModel } from "@google/genai";
 import { Goal } from "../types.ts";
 
-// Always use const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
+// Inicialização correta com objeto de opções para @google/genai
+const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 const MODEL_NAME = "gemini-1.5-flash";
 
 export async function getFinancialInsight(goal: Goal, userBalance: number) {
+  // getGenerativeModel é uma função standalone neste SDK
+  const model = getGenerativeModel(genAI, {
+    model: MODEL_NAME,
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "object" as any,
+        properties: {
+          analysis: { type: "string" as any },
+          monthlySuggestion: { type: "number" as any },
+          actionSteps: {
+            type: "array" as any,
+            items: { type: "string" as any }
+          }
+        },
+        required: ["analysis", "monthlySuggestion", "actionSteps"]
+      },
+    },
+  });
+
   const prompt = `
-    Como um assistente financeiro sênior da fintech "Cofre Inteligente", analise a seguinte meta do usuário:
+    Analise esta meta financeira:
     Título: ${goal.title}
     Valor Alvo: R$ ${goal.targetAmount}
     Valor Atual: R$ ${goal.currentAmount}
     Prazo: ${goal.deadline}
-    Saldo Total do Usuário: R$ ${userBalance}
+    Saldo disponível do usuário: R$ ${userBalance}
 
-    Forneça um plano de ação curto (3 tópicos) para atingir essa meta mais rápido, incluindo uma sugestão de economia mensal e uma dica de investimento conservador.
-    Responda em JSON.
+    Forneça uma análise curta, uma sugestão de valor para poupar mensalmente e 3 passos de ação.
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            analysis: { type: Type.STRING },
-            monthlySuggestion: { type: Type.NUMBER },
-            actionSteps: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            }
-          },
-          required: ["analysis", "monthlySuggestion", "actionSteps"]
-        }
-      }
-    });
-
-    const jsonStr = response.text?.trim();
-    if (!jsonStr) return null;
-    return JSON.parse(jsonStr);
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    return JSON.parse(text);
   } catch (error) {
-    console.error("[geminiService] Error:", error);
+    console.error("[geminiService] Insight Error:", error);
     return null;
   }
 }
 
 export async function getInvestmentRecommendations(goals: Goal[], balance: number) {
-  const prompt = `
-    Analise a carteira de metas do usuário:
-    Metas: ${goals.map(g => `${g.title} (Saldo: R$${g.currentAmount}, Alvo: R$${g.targetAmount}, Prazo: ${g.deadline})`).join('; ')}
-    Saldo Total Acumulado: R$ ${balance}
+  const model = getGenerativeModel(genAI, {
+    model: MODEL_NAME,
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "array" as any,
+        items: {
+          type: "object" as any,
+          properties: {
+            product: { type: "string" as any },
+            yield: { type: "string" as any },
+            liquidity: { type: "string" as any },
+            reasoning: { type: "string" as any }
+          },
+          required: ["product", "yield", "liquidity", "reasoning"]
+        }
+      },
+    },
+  });
 
-    Com base nos prazos das metas, sugira 3 produtos de investimento conservadores do mercado brasileiro (ex: Tesouro Selic, CDB 100% CDI, LCI/LCA).
-    Retorne um JSON com uma lista de objetos contendo: product (nome), yield (rentabilidade esperada), liquidity (tipo de liquidez), e reasoning (por que este produto é ideal para as metas citadas).
+  const prompt = `
+    Sugira 3 investimentos para estas metas: ${goals.map(g => g.title).join(", ")}. 
+    Saldo atual investido: R$ ${balance}.
+    Foque em produtos conservadores (CDB, Tesouro, LCI/LCA).
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              product: { type: Type.STRING },
-              yield: { type: Type.STRING },
-              liquidity: { type: Type.STRING },
-              reasoning: { type: Type.STRING }
-            },
-            required: ["product", "yield", "liquidity", "reasoning"]
-          }
-        }
-      }
-    });
-
-    const jsonStr = response.text?.trim();
-    return jsonStr ? JSON.parse(jsonStr) : [];
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    return JSON.parse(text);
   } catch (error) {
-    console.error("[geminiService] Recommendations Error:", error);
+    console.error("[geminiService] Recs Error:", error);
     return [];
   }
 }
 
 export async function chatFinancialAdvisor(message: string, context: string) {
-  const chat = ai.chats.create({
-    model: MODEL_NAME,
-    config: {
-      systemInstruction: 'Você é o consultor do Cofre Inteligente. Seja educado, use termos de educação financeira brasileiros e incentive o usuário a poupar com inteligência.',
+  const model = getGenerativeModel(genAI, { model: MODEL_NAME });
+  
+  const chat = model.startChat({
+    history: [],
+    generationConfig: {
+      maxOutputTokens: 500,
     },
   });
 
-  const response = await chat.sendMessage({ message: `${message}. Contexto das minhas metas atuais: ${context}` });
-  return response.text;
+  try {
+    const fullMessage = `Contexto do usuário: ${context}. Pergunta: ${message}`;
+    const result = await chat.sendMessage(fullMessage);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("[geminiService] Chat Error:", error);
+    return "Desculpe, tive um problema ao processar sua pergunta.";
+  }
 }
