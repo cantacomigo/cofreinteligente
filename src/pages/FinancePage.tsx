@@ -24,6 +24,7 @@ interface FinancePageProps {
   onDeleteTransaction: (id: string) => void;
   onSaveBudget: (category: string, amount: number) => void;
   onRefreshCategories: () => void;
+  showCharts: boolean; // Adicionando a prop
 }
 
 const COLORS = ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -38,13 +39,13 @@ const FinancePage: React.FC<FinancePageProps> = ({
   onDeleteTransaction,
   onSaveBudget,
   onRefreshCategories,
+  showCharts, // Usando a prop
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [editTransactionData, setEditTransactionData] = useState<Transaction | null>(null);
-  const [showCharts, setShowCharts] = useState(true); // Assume mounted for simplicity here, or use App.tsx state if needed
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
@@ -217,7 +218,8 @@ const FinancePage: React.FC<FinancePageProps> = ({
                       </div>
                     </div>
                   </div>
-                ))}
+                )) // <-- Fechamento correto do map
+              }
             </div>
           </div>
         </div>

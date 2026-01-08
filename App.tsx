@@ -282,6 +282,7 @@ const App: React.FC = () => {
             onDeleteTransaction={handleDeleteTransaction}
             onSaveBudget={handleSaveBudget}
             onRefreshCategories={() => user && fetchData(user.id)}
+            showCharts={showCharts} // Passando showCharts
           />
         )}
 
