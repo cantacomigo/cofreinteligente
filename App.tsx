@@ -2,12 +2,12 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Wallet, Target, TrendingUp, History, Plus, LayoutDashboard, 
   Trash2, Clock, Sparkles, ChevronRight, Layers, BarChart3,
-  ArrowUpCircle, ArrowDownCircle, DollarSign, PlusCircle, LogOut, Loader2
+  ArrowUpCircle, ArrowDownCircle, DollarSign, PlusCircle, LogOut, Loader2, PieChart as PieChartIcon
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, 
-  AreaChart, Area
+  AreaChart, Area, Legend
 } from 'recharts';
 import { Goal, Transaction, UserProfile } from './src/types.ts';
 import { MOCK_USER, CATEGORIES, FINANCE_CATEGORIES } from './src/constants.tsx';
@@ -17,6 +17,7 @@ import AIAdvisor from './src/components/AIAdvisor.tsx';
 import InvestmentRecommendations from './src/components/InvestmentRecommendations.tsx';
 import AddGoalModal from './src/components/AddGoalModal.tsx';
 import AddTransactionModal from './src/components/AddTransactionModal.tsx';
+import GoalAnalysisModal from './src/components/GoalAnalysisModal.tsx';
 import { useSession } from './src/contexts/SessionContextProvider.tsx';
 import Login from './src/pages/Login.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
@@ -34,6 +35,7 @@ const App: React.FC = () => {
   const [isPixOpen, setIsPixOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
   const totals = useMemo(() => {
@@ -44,6 +46,17 @@ const App: React.FC = () => {
     
     return { income, expense, invested, balance };
   }, [transactions, goals]);
+
+  const categoryChartData = useMemo(() => {
+    const expenses = transactions.filter(t => t.type === 'expense');
+    const categories: Record<string, number> = {};
+    expenses.forEach(t => {
+      categories[t.category] = (categories[t.category] || 0) + t.amount;
+    });
+    return Object.entries(categories).map(([name, value]) => ({ name, value }));
+  }, [transactions]);
+
+  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
   const sortedByDeadline = useMemo(() => 
     [...goals].sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()),
@@ -132,6 +145,11 @@ const App: React.FC = () => {
   const handleDeposit = (goal: Goal) => {
     setSelectedGoal(goal);
     setIsPixOpen(true);
+  };
+
+  const handleAnalyseGoal = (goal: Goal) => {
+    setSelectedGoal(goal);
+    setIsAnalysisOpen(true);
   };
 
   const confirmDeposit = async (amount: number) => {
@@ -253,7 +271,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {sortedByDeadline.slice(0, 2).map(g => (
-                    <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={() => {}} onUpdateDescription={handleUpdateGoalDescription} />
+                    <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} onUpdateDescription={handleUpdateGoalDescription} />
                   ))}
                 </div>
               </div>
@@ -270,24 +288,54 @@ const App: React.FC = () => {
                 <PlusCircle className="w-5 h-5" /> Registrar Valor
               </button>
             </div>
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase">
-                  <tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4">Descrição</th><th className="px-6 py-4 text-right">Valor</th></tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {transactions.map(t => (
-                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
-                      <td className="px-6 py-4 capitalize font-bold text-slate-700">{t.category}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600">{t.description || (t.type === 'deposit' ? 'Depósito em Meta' : 'Transação')}</td>
-                      <td className={`px-6 py-4 text-right font-black ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-4">
+                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                  <h3 className="font-bold mb-4 flex items-center gap-2"><PieChartIcon className="w-5 h-5 text-emerald-600"/> Divisão de Gastos</h3>
+                  <div style={{ width: '100%', height: 250 }}>
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie
+                          data={categoryChartData}
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {categoryChartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                        <Legend iconType="circle" />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="lg:col-span-8">
+                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase">
+                      <tr><th className="px-6 py-4">Data</th><th className="px-6 py-4">Categoria</th><th className="px-6 py-4">Descrição</th><th className="px-6 py-4 text-right">Valor</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {transactions.map(t => (
+                        <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4 text-sm text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 capitalize font-bold text-slate-700">{t.category}</td>
+                          <td className="px-6 py-4 text-sm text-slate-600">{t.description || (t.type === 'deposit' ? 'Depósito em Meta' : 'Transação')}</td>
+                          <td className={`px-6 py-4 text-right font-black ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -302,7 +350,7 @@ const App: React.FC = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {goals.map(g => (
-                <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={() => {}} onUpdateDescription={handleUpdateGoalDescription} />
+                <GoalCard key={g.id} goal={g} onDeposit={handleDeposit} onDelete={handleDeleteGoal} onViewDetails={handleAnalyseGoal} onUpdateDescription={handleUpdateGoalDescription} />
               ))}
             </div>
           </div>
@@ -318,6 +366,14 @@ const App: React.FC = () => {
       <PixModal isOpen={isPixOpen} onClose={() => setIsPixOpen(false)} goalTitle={selectedGoal?.title || ''} onConfirm={confirmDeposit} />
       <AddGoalModal isOpen={isGoalModalOpen} onClose={() => setIsGoalModalOpen(false)} onAdd={handleAddGoal} />
       <AddTransactionModal isOpen={isTransactionModalOpen} onClose={() => setIsTransactionModalOpen(false)} onAdd={handleAddTransaction} />
+      {selectedGoal && (
+        <GoalAnalysisModal 
+          isOpen={isAnalysisOpen} 
+          onClose={() => setIsAnalysisOpen(false)} 
+          goal={selectedGoal} 
+          userBalance={totals.balance} 
+        />
+      )}
     </div>
   );
 };
