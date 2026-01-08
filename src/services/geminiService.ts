@@ -2,19 +2,27 @@ import { supabase } from "../integrations/supabase/client";
 import { Goal, Transaction } from "../types.ts";
 
 /**
- * Utilitário para chamar a Edge Function centralizada de IA.
- * Isso mantém a chave de API segura no servidor.
+ * Utilitário para chamar a Edge Function centralizada de IA com tratamento de autenticação.
  */
 const invokeGemini = async (action: string, payload: any) => {
   try {
+    // Busca a sessão atual para garantir que o token esteja presente
+    const { data: { session } } = await supabase.auth.getSession();
+    
     const { data, error } = await supabase.functions.invoke('gemini', {
-      body: { action, payload }
+      body: { action, payload },
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`
+      }
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error(`[Cofre IA] Erro na função ${action}:`, error);
+      throw error;
+    }
     return data;
   } catch (err) {
-    console.error(`[Cofre IA] Erro ao processar ${action}:`, err);
+    console.error(`[Cofre IA] Falha crítica em ${action}:`, err);
     return null;
   }
 };
