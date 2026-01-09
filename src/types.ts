@@ -18,7 +18,7 @@ export interface Transaction {
   type: 'deposit' | 'withdrawal' | 'yield' | 'income' | 'expense';
   category: string;
   description?: string;
-  createdAt: string;
+  created_at: string; /* CORRIGIDO: de createdAt para created_at */
   method: 'pix' | 'automatic' | 'manual' | 'card' | 'transfer';
 }
 

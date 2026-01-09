@@ -10,7 +10,7 @@ import { categorizeTransaction } from '../services/geminiService.ts';
 interface AddTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (transaction: Omit<Transaction, 'id' | 'createdAt'> & { createdAt: string }) => void;
+  onAdd: (transaction: Omit<Transaction, 'id' | 'created_at'> & { created_at: string }) => void;
   onUpdate?: (id: string, transaction: any) => void;
   categories: { id: string, name: string, type: string }[];
   onRefreshCategories: () => void;
@@ -48,7 +48,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         category: editData.category,
         description: editData.description || '',
         method: editData.method,
-        date: new Date(editData.createdAt).toISOString().split('T')[0]
+        date: new Date(editData.created_at).toISOString().split('T')[0]
       });
     } else {
       setFormData({
@@ -95,7 +95,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
       category: formData.category,
       description: formData.description,
       method: formData.method,
-      createdAt: new Date(formData.date).toISOString()
+      created_at: new Date(formData.date).toISOString() // CORRIGIDO: de createdAt para created_at
     };
 
     if (editData && onUpdate) {
