@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Sparkles, TrendingUp, Calendar, Target, Loader2, Lightbulb, ArrowUpRight } from 'lucide-react';
 import { Goal } from '../types.ts';
 import { getFinancialInsight } from '../services/geminiService.ts';
+import { formatNumber, formatCurrency } from '../utils/formatters.ts';
 
 interface GoalAnalysisModalProps {
   isOpen: boolean;
@@ -31,6 +32,16 @@ const GoalAnalysisModal: React.FC<GoalAnalysisModalProps> = ({ isOpen, onClose, 
   if (!isOpen) return null;
 
   const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+  const remainingAmount = goal.targetAmount - goal.currentAmount;
+  
+  // Calcula os dias restantes
+  const deadlineDate = new Date(goal.deadline);
+  const now = new Date();
+  const diffTime = Math.max(0, deadlineDate.getTime() - now.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  const dailyGoal = remainingAmount > 0 && diffDays > 0 ? remainingAmount / diffDays : 0;
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
@@ -58,11 +69,11 @@ const GoalAnalysisModal: React.FC<GoalAnalysisModalProps> = ({ isOpen, onClose, 
             </div>
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faltam</span>
-              <p className="text-xl font-black text-slate-700">R$ {(goal.targetAmount - goal.currentAmount).toLocaleString('pt-BR')}</p>
+              <p className="text-xl font-black text-slate-700">R$ {formatNumber(remainingAmount)}</p>
             </div>
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Meta Diária</span>
-              <p className="text-xl font-black text-slate-700">R$ {((goal.targetAmount - goal.currentAmount) / 30).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
+              <p className="text-xl font-black text-slate-700">R$ {formatNumber(dailyGoal)}</p>
             </div>
           </div>
 
@@ -89,7 +100,7 @@ const GoalAnalysisModal: React.FC<GoalAnalysisModalProps> = ({ isOpen, onClose, 
                   <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-between">
                     <div>
                       <p className="text-[10px] font-black text-indigo-400 uppercase">Sugestão de Upgrade</p>
-                      <p className="text-sm font-bold text-indigo-900">Aumentar alvo em R$ {insight.suggestedTargetAdjustment.toLocaleString('pt-BR')}?</p>
+                      <p className="text-sm font-bold text-indigo-900">Aumentar alvo em {formatNumber(insight.suggestedTargetAdjustment)}?</p>
                     </div>
                     <button className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-all">
                       <ArrowUpRight className="w-4 h-4" />
@@ -111,7 +122,7 @@ const GoalAnalysisModal: React.FC<GoalAnalysisModalProps> = ({ isOpen, onClose, 
                   </div>
                   <div className="bg-slate-900 p-6 rounded-2xl text-white">
                     <h5 className="text-[10px] font-black text-emerald-400 uppercase mb-2">Recomendação Mensal</h5>
-                    <p className="text-2xl font-black">R$ {insight.monthlySuggestion.toLocaleString('pt-BR')}</p>
+                    <p className="text-2xl font-black">{formatCurrency(insight.monthlySuggestion)}</p>
                     <p className="text-slate-400 text-xs mt-2">Poupar este valor mensalmente garante sua meta no prazo.</p>
                   </div>
                 </div>

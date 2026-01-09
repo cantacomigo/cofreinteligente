@@ -13,13 +13,14 @@ import { Transaction } from '../types.ts';
 import BudgetTracker from '../components/BudgetTracker.tsx';
 import AddTransactionModal from '../components/AddTransactionModal.tsx';
 import SetBudgetModal from '../components/SetBudgetModal.tsx';
+import { formatNumber, formatCurrency } from '../utils/formatters.ts';
 
 interface FinancePageProps {
   transactions: Transaction[];
   budgets: any[];
   customCategories: any[];
   totals: { expense: number };
-  onAddTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt'> & { createdAt: string }) => void;
+  onAddTransaction: (transaction: Omit<Transaction, 'id' | 'created_at'> & { created_at: string }) => void;
   onUpdateTransaction: (id: string, transaction: any) => void;
   onDeleteTransaction: (id: string) => void;
   onSaveBudget: (category: string, amount: number) => void;
@@ -137,6 +138,7 @@ const FinancePage: React.FC<FinancePageProps> = ({
                       {categoryChartData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                     </Pie>
                     <RechartsTooltip 
+                      formatter={(value) => [formatNumber(Number(value)), 'R$']}
                       contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 'bold'}} 
                     />
                   </PieChart>
@@ -147,7 +149,7 @@ const FinancePage: React.FC<FinancePageProps> = ({
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-center">
                   <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Total</p>
-                  <p className="text-sm font-black text-slate-900 mt-1">R$ {totals.expense.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</p>
+                  <p className="text-sm font-black text-slate-900 mt-1">{formatCurrency(totals.expense)}</p>
                 </div>
               </div>
             </div>
@@ -191,14 +193,14 @@ const FinancePage: React.FC<FinancePageProps> = ({
                         <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5 mt-0.5">
                           {t.description || 'Sem descrição'} 
                           <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                          {new Date(t.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                          {new Date(t.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className={`font-black text-base tracking-tighter ${t.type === 'income' ? 'text-emerald-600' : 'text-slate-900'}`}>
-                          {t.type === 'income' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR')}
+                          {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
                         </p>
                         <p className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Confirmado</p>
                       </div>

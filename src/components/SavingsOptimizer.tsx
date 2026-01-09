@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Zap, RefreshCcw, Loader2, Trash2 } from 'lucide-react';
 import { Transaction } from '../types.ts';
 import { detectSubscriptions } from '../services/geminiService.ts';
+import { formatNumber } from '../utils/formatters.ts';
 
 interface SavingsOptimizerProps {
   transactions: Transaction[];
@@ -43,7 +44,7 @@ const SavingsOptimizer: React.FC<SavingsOptimizerProps> = ({ transactions }) => 
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h4 className="text-xs font-bold text-slate-800">{sub.name}</h4>
-                  <p className="text-[10px] text-slate-400 font-medium">R$ {sub.amount.toLocaleString('pt-BR')} • {sub.frequency}</p>
+                  <p className="text-[10px] text-slate-400 font-medium">R$ {formatNumber(sub.amount)} • {sub.frequency}</p>
                 </div>
                 <div className="bg-rose-100 text-rose-600 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
                   <Trash2 className="w-3 h-3" />

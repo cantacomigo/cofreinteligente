@@ -2,6 +2,7 @@ import React from 'react';
 import { TrendingUp, Plus, Calendar, Settings, Trash2, Check, X, FileText, ChevronRight } from 'lucide-react';
 import { Goal } from '../types.ts';
 import { CATEGORIES } from '../constants.tsx';
+import { formatNumber } from '../utils/formatters.ts';
 
 interface GoalCardProps {
   goal: Goal;
@@ -15,14 +16,7 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onDeposit, onViewDetails, onD
   const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
   
   const deadlineDate = new Date(goal.deadline);
-  const now = new Date();
-  const diffTime = Math.max(0, deadlineDate.getTime() - now.getTime());
-  const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
   
-  // Note: Projected value calculation is currently unused in the card UI, but kept for potential future use.
-  // const projectedValue = goal.currentAmount * Math.pow(1 + (goal.interestRate / 100), diffYears);
-  // const estimatedYield = projectedValue - goal.currentAmount;
-
   return (
     <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col group relative">
       <div className={`h-1.5 w-full ${category.color}`} />
@@ -50,11 +44,11 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onDeposit, onViewDetails, onD
           <div className="flex items-baseline gap-1.5 mb-1">
             <span className="text-xs font-bold text-slate-400">R$</span>
             <span className="text-3xl font-black text-slate-900 tracking-tighter">
-              {goal.currentAmount.toLocaleString('pt-BR')}
+              {formatNumber(goal.currentAmount)}
             </span>
           </div>
           <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase">
-            <span>Objetivo: R$ {goal.targetAmount.toLocaleString('pt-BR')}</span>
+            <span>Objetivo: R$ {formatNumber(goal.targetAmount)}</span>
             <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{progress.toFixed(0)}%</span>
           </div>
           <div className="mt-3 h-2.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingDown, TrendingUp, AlertTriangle, Sparkles, Loader2 } from 'lucide-react';
 import { Transaction } from '../types.ts';
 import { getCashFlowPrediction } from '../services/geminiService.ts';
+import { formatCurrency } from '../utils/formatters.ts';
 
 interface CashFlowPredictionProps {
   transactions: Transaction[];
@@ -45,7 +46,7 @@ const CashFlowPrediction: React.FC<CashFlowPredictionProps> = ({ transactions, b
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase">Saldo Previsto</p>
               <h4 className={`text-2xl font-black ${prediction.predictedBalance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                R$ {prediction.predictedBalance.toLocaleString('pt-BR')}
+                {formatCurrency(prediction.predictedBalance)}
               </h4>
             </div>
             {prediction.predictedBalance < balance ? (

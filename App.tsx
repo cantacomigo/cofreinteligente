@@ -16,6 +16,7 @@ import DashboardPage from './src/pages/DashboardPage.tsx';
 import FinancePage from './src/pages/FinancePage.tsx';
 import GoalsPage from './src/pages/GoalsPage.tsx';
 import { supabase } from './src/integrations/supabase/client.ts';
+import { formatCurrency } from './src/utils/formatters.ts';
 
 type Tab = 'dashboard' | 'goals' | 'finance';
 
@@ -96,12 +97,12 @@ const App: React.FC = () => {
         setTransactions(transactionsData.map(t => ({
           id: t.id, goalId: t.goal_id || undefined, amount: Number(t.amount),
           type: t.type as Transaction['type'], category: t.category, description: t.description || undefined,
-          createdAt: t.created_at, method: t.method as Transaction['method'],
+          created_at: t.created_at, method: t.method as Transaction['method'],
         })));
       }
 
       const { data: budgetsData } = await supabase.from('budgets').select('*').eq('user_id', userId);
-      if (budgetsData) setBudgets(budgetsData);
+      if (budgetsData) setBudgets(budgets);
 
       const { data: challengesData } = await supabase.from('challenges').select('*').eq('user_id', userId).eq('status', 'active');
       if (challengesData) setChallenges(challengesData);
@@ -169,7 +170,7 @@ const App: React.FC = () => {
       category: updatedTx.category,
       description: updatedTx.description,
       method: updatedTx.method,
-      created_at: updatedTx.createdAt
+      created_at: updatedTx.created_at // Corrigido para created_at
     }).eq('id', id);
 
     if (error) {

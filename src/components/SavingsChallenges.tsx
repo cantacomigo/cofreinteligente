@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Trophy, Flame, Plus, CheckCircle2, Clock } from 'lucide-react';
+import { formatNumber } from '../utils/formatters.ts';
 
 interface Challenge {
   id: string;

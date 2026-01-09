@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, Copy, CheckCircle2 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import ConfirmationModal from './ConfirmationModal.tsx';
+import { formatNumber } from '../utils/formatters.ts';
 
 interface PixModalProps {
   isOpen: boolean;
@@ -110,7 +111,7 @@ const PixModal: React.FC<PixModalProps> = ({ isOpen, onClose, onConfirm, goalTit
       <ConfirmationModal 
         isOpen={showConfirm}
         title="Confirmar Adição"
-        message={`Deseja realmente adicionar R$ ${Number(amount).toLocaleString('pt-BR')} à meta "${goalTitle}"?`}
+        message={`Deseja realmente adicionar R$ ${formatNumber(Number(amount))} à meta "${goalTitle}"?`}
         onConfirm={handleFinalConfirm}
         onCancel={() => setShowConfirm(false)}
       />

@@ -3,6 +3,7 @@
 import React from 'react';
 import { AlertTriangle, Plus, Target, Wallet } from 'lucide-react';
 import { FINANCE_CATEGORIES } from '../constants.tsx';
+import { formatNumber, formatCurrency } from '../utils/formatters.ts';
 
 interface Budget {
   category: string;
@@ -55,13 +56,13 @@ const BudgetTracker: React.FC<BudgetTrackerProps> = ({ budgets, onSetBudget }) =
                 <div className="flex justify-between items-end">
                   <div>
                     <span className="text-[11px] font-black text-slate-800 capitalize">{categoryLabel}</span>
-                    <p className="text-[9px] font-medium text-slate-400">Restam R$ {remaining.toLocaleString('pt-BR')}</p>
+                    <p className="text-[9px] font-medium text-slate-400">Restam {formatCurrency(remaining)}</p>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] font-black text-slate-900">
-                      R$ {budget.spent.toLocaleString('pt-BR')}
+                      {formatCurrency(budget.spent)}
                     </span>
-                    <span className="text-[9px] text-slate-400 font-bold ml-1">/ R$ {budget.limit_amount.toLocaleString('pt-BR')}</span>
+                    <span className="text-[9px] text-slate-400 font-bold ml-1">/ {formatCurrency(budget.limit_amount)}</span>
                   </div>
                 </div>
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
