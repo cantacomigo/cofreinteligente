@@ -129,55 +129,93 @@ const App: React.FC = () => {
       amount_param: amount,
     });
 
-    if (error) { console.error('Erro ao depositar via RPC:', error); }
+    if (error) { 
+      console.error('Erro ao depositar via RPC:', error); 
+      alert(`Erro ao depositar: ${error.message}`);
+      return;
+    }
     
     fetchData(user.id);
   };
 
   const handleAddGoal = async (newGoal: any) => { 
     if (!user) return; 
-    await supabase.from('goals').insert({ user_id: user.id, ...newGoal }); 
+    const { error } = await supabase.from('goals').insert({ user_id: user.id, ...newGoal }); 
+    if (error) {
+      console.error('Erro ao adicionar meta:', error);
+      alert(`Erro ao adicionar meta: ${error.message}`);
+      return;
+    }
     fetchData(user.id); 
   };
 
   const handleAddTransaction = async (newTx: any) => { 
     if (!user) return; 
-    await supabase.from('transactions').insert({ user_id: user.id, ...newTx }); 
+    const { error } = await supabase.from('transactions').insert({ user_id: user.id, ...newTx }); 
+    
+    if (error) {
+      console.error('Erro ao adicionar transação:', error);
+      alert(`Erro ao adicionar transação: ${error.message}`);
+      return;
+    }
+    
     fetchData(user.id); 
   };
 
   const handleUpdateTransaction = async (id: string, updatedTx: any) => {
     if (!user) return;
-    await supabase.from('transactions').update({
+    const { error } = await supabase.from('transactions').update({
       amount: updatedTx.amount,
       category: updatedTx.category,
       description: updatedTx.description,
       method: updatedTx.method,
       created_at: updatedTx.createdAt
     }).eq('id', id);
+
+    if (error) {
+      console.error('Erro ao atualizar transação:', error);
+      alert(`Erro ao atualizar transação: ${error.message}`);
+      return;
+    }
     fetchData(user.id);
   };
 
   const handleDeleteTransaction = async (id: string) => {
     if (confirm('Deseja excluir este registro permanentemente?')) {
-      await supabase.from('transactions').delete().eq('id', id);
+      const { error } = await supabase.from('transactions').delete().eq('id', id);
+      if (error) {
+        console.error('Erro ao excluir transação:', error);
+        alert(`Erro ao excluir transação: ${error.message}`);
+        return;
+      }
       if (user) fetchData(user.id);
     }
   };
 
   const handleDeleteGoal = async (goal: Goal) => { 
     if (confirm('Excluir meta?')) { 
-      await supabase.from('goals').delete().eq('id', goal.id); 
+      const { error } = await supabase.from('goals').delete().eq('id', goal.id); 
+      if (error) {
+        console.error('Erro ao excluir meta:', error);
+        alert(`Erro ao excluir meta: ${error.message}`);
+        return;
+      }
       if (user) fetchData(user.id); 
     } 
   };
   
   const handleSaveBudget = async (category: string, amount: number) => {
     if (!user) return;
-    await supabase.from('budgets').upsert({
+    const { error } = await supabase.from('budgets').upsert({
       user_id: user.id, category, limit_amount: amount,
       month: new Date().getMonth() + 1, year: new Date().getFullYear()
     }, { onConflict: 'user_id, category, month, year' });
+
+    if (error) {
+      console.error('Erro ao salvar orçamento:', error);
+      alert(`Erro ao salvar orçamento: ${error.message}`);
+      return;
+    }
     fetchData(user.id);
   };
 
